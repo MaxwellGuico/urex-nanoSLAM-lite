@@ -1,0 +1,167 @@
+--- esp-idf-monitor 1.10.0 on /dev/ttyACM0 115200
+--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+Executing action: monitor
+Running idf_monitor in directory /home/user/urex/firmware/nus_flight_app
+Executing "/home/user/.espressif/python_env/idf6.0_py3.12_env/bin/python /home/user/.espressif/v6.0.2/esp-idf/tools/idf_monitor.py -p /dev/ttyACM0 -b 115200 --toolchain-prefix xtensa-esp32s3-elf- --target esp32s3 --revision 0 /home/user/urex/firmware/nus_flight_app/build/esp-everything.elf /home/user/urex/firmware/nus_flight_app/build/bootloader/bootloader.elf -m '/home/user/.espressif/python_env/idf6.0_py3.12_env/bin/python' '/home/user/.espressif/v6.0.2/esp-idf/tools/idf.py' '-p' '/dev/ttyACM0'"...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0xb (SPI_FAST_FLASH_BOOT)
+Saved PC:0x403789d6
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x14f0
+load:0x403c8700,len:0xd24
+--- 0x403c8700: _stext at ??:?
+load:0x403cb700,len:0x2eec
+entry 0x403c8924
+--- 0x403c8924: call_start_cpu0 at /home/user/.espressif/v6.0.2/esp-idf/components/bootloader/subproject/main/bootloader_start.c:39
+[0;32mI (24) boot: ESP-IDF v5.5.5 2nd stage bootloader[0m
+[0;32mI (24) boot: compile time Aug 28 2026 15:15:26[0m
+[0;32mI (25) boot: Multicore bootloader[0m
+[0;32mI (25) boot: chip revision: v0.2[0m
+[0;32mI (27) boot: efuse block revision: v1.3[0m
+[0;32mI (31) boot.esp32s3: Boot SPI Speed : 80MHz[0m
+[0;32mI (35) boot.esp32s3: SPI Mode       : DIO[0m
+[0;32mI (39) boot.esp32s3: SPI Flash Size : 2MB[0m
+[0;32mI (42) boot: Enabling RNG early entropy source...[0m
+[0;32mI (47) boot: Partition Table:[0m
+[0;32mI (50) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (56) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (62) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (69) boot:  2 factory          factory app      00 00 00010000 00177000[0m
+[0;32mI (75) boot: End of partition table[0m
+[0;32mI (79) esp_image: segment 0: paddr=00010020 vaddr=3c030020 size=23f58h (147288) map[0m
+[0;32mI (113) esp_image: segment 1: paddr=00033f80 vaddr=3fc94d00 size=02fd8h ( 12248) load[0m
+[0;32mI (116) esp_image: segment 2: paddr=00036f60 vaddr=40374000 size=090b8h ( 37048) load[0m
+[0;32mI (125) esp_image: segment 3: paddr=00040020 vaddr=42000020 size=24c1ch (150556) map[0m
+[0;32mI (153) esp_image: segment 4: paddr=00064c44 vaddr=4037d0b8 size=07c08h ( 31752) load[0m
+[0;32mI (161) esp_image: segment 5: paddr=0006c854 vaddr=50000000 size=00020h (    32) load[0m
+[0;32mI (168) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (168) boot: Disabling RNG early entropy source...[0m
+[0;32mI (179) cpu_start: Multicore app[0m
+[0;32mI (187) cpu_start: GPIO 44 and 43 are used as console UART I/O pins[0m
+[0;32mI (188) cpu_start: Pro cpu start user code[0m
+[0;32mI (188) cpu_start: cpu freq: 160000000 Hz[0m
+[0;32mI (190) app_init: Application information:[0m
+[0;32mI (193) app_init: Project name:     esp-everything[0m
+[0;32mI (198) app_init: App version:      eb75379-dirty[0m
+[0;32mI (202) app_init: Compile time:     Sep 11 2026 17:43:10[0m
+[0;32mI (207) app_init: ELF file SHA256:  bcf736860...[0m
+--- WARNING: Checksum mismatch between flashed and built applications. Checksum of built application is 447fc40726e5087a795959ae3de0f900c2892962ff1de389f6a85532c9139500
+[0;32mI (212) app_init: ESP-IDF:          v5.5.5[0m
+[0;32mI (216) efuse_init: Min chip rev:     v0.0[0m
+[0;32mI (219) efuse_init: Max chip rev:     v0.99 [0m
+[0;32mI (223) efuse_init: Chip rev:         v0.2[0m
+[0;32mI (227) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (234) heap_init: At 3FCA2330 len 000473E0 (284 KiB): RAM[0m
+[0;32mI (239) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM[0m
+[0;32mI (244) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM[0m
+[0;32mI (249) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM[0m
+[0;32mI (255) spi_flash: detected chip: gd[0m
+[0;32mI (258) spi_flash: flash io: dio[0m
+[0;33mW (261) spi_flash: Detected size(8192k) larger than the size in the binary image header(2048k). Using the size in the binary image header.[0m
+[0;32mI (273) sleep_gpio: Configure to isolate all GPIO pins in sleep state[0m
+[0;32mI (279) sleep_gpio: Enable automatic switching of GPIO sleep configuration[0m
+[0;32mI (286) main_task: Started on CPU0[0m
+[0;32mI (289) main_task: Calling app_main()[0m
+[0;32mI (292) mission: ESP starting with Integrated Swarm SLAM[0m
+[0;32mI (317) swarm: Swarm node initialized with Drone ID: 0[0m
+[0;32mI (317) swarm_graph: Swarm graph initialized (max 64 poses/scans in RAM)[0m
+[0;32mI (318) swarm_comm: Swarm comm initialized[0m
+[0;32mI (321) slam: SLAM subsystem initialized[0m
+[0;32mI (325) MEM: [app_main_after_init] Free SRAM: 329948 bytes (Min Lifetime Free: 329948 bytes)[0m
+[0;32mI (334) mav: UART1 ready: TX=GPIO5 RX=GPIO4 @ 921600 baud[0m
+[0;32mI (339) tof: I2C master bus created[0m
+[0;32mI (341) tof: TCA9548A registered[0m
+[0;32mI (345) nav: Navigator started (0.4 m/s cruise, ±6° yaw tol)[0m
+[0;33mW (345) tof: [0] TCA select failed: 259[0m
+[0;32mI (350) mission: Waiting for telemetry...[0m
+[0;32mI (345) mission: All tasks spawned[0m
+[0;32mI (360) main_task: Returned from app_main()[0m
+[0;32mI (1805) tof: [1] OK — 315° @ 15Hz 8x8[0m
+[0;32mI (3209) tof: [2] OK — 270° @ 15Hz 8x8[0m
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0xb (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037c7c7
+--- 0x4037c7c7: spimem_flash_ll_sync_reset at /home/user/.espressif/v6.0.2/esp-idf/components/esp_hal_mspi/esp32s3/include/hal/spimem_flash_ll.h:723(inlined by) bootloader_flash_reset_chip at /home/user/.espressif/v6.0.2/esp-idf/components/bootloader_support/bootloader_flash/src/bootloader_flash.c:1006
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x14f0
+load:0x403c8700,len:0xd24
+--- 0x403c8700: _stext at ??:?
+load:0x403cb700,len:0x2eec
+entry 0x403c8924
+--- 0x403c8924: call_start_cpu0 at /home/user/.espressif/v6.0.2/esp-idf/components/bootloader/subproject/main/bootloader_start.c:39
+[0;32mI (24) boot: ESP-IDF v5.5.5 2nd stage bootloader[0m
+[0;32mI (24) boot: compile time Aug 28 2026 15:15:26[0m
+[0;32mI (25) boot: Multicore bootloader[0m
+[0;32mI (25) boot: chip revision: v0.2[0m
+[0;32mI (27) boot: efuse block revision: v1.3[0m
+[0;32mI (31) boot.esp32s3: Boot SPI Speed : 80MHz[0m
+[0;32mI (35) boot.esp32s3: SPI Mode       : DIO[0m
+[0;32mI (39) boot.esp32s3: SPI Flash Size : 2MB[0m
+[0;32mI (42) boot: Enabling RNG early entropy source...[0m
+[0;32mI (47) boot: Partition Table:[0m
+[0;32mI (50) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (56) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (62) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (69) boot:  2 factory          factory app      00 00 00010000 00177000[0m
+[0;32mI (75) boot: End of partition table[0m
+[0;32mI (79) esp_image: segment 0: paddr=00010020 vaddr=3c030020 size=23f58h (147288) map[0m
+[0;32mI (113) esp_image: segment 1: paddr=00033f80 vaddr=3fc94d00 size=02fd8h ( 12248) load[0m
+[0;32mI (116) esp_image: segment 2: paddr=00036f60 vaddr=40374000 size=090b8h ( 37048) load[0m
+[0;32mI (125) esp_image: segment 3: paddr=00040020 vaddr=42000020 size=24c1ch (150556) map[0m
+[0;32mI (153) esp_image: segment 4: paddr=00064c44 vaddr=4037d0b8 size=07c08h ( 31752) load[0m
+[0;32mI (161) esp_image: segment 5: paddr=0006c854 vaddr=50000000 size=00020h (    32) load[0m
+[0;32mI (168) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (168) boot: Disabling RNG early entropy source...[0m
+[0;32mI (179) cpu_start: Multicore app[0m
+[0;32mI (187) cpu_start: GPIO 44 and 43 are used as console UART I/O pins[0m
+[0;32mI (188) cpu_start: Pro cpu start user code[0m
+[0;32mI (188) cpu_start: cpu freq: 160000000 Hz[0m
+[0;32mI (190) app_init: Application information:[0m
+[0;32mI (193) app_init: Project name:     esp-everything[0m
+[0;32mI (198) app_init: App version:      eb75379-dirty[0m
+[0;32mI (202) app_init: Compile time:     Sep 11 2026 17:43:10[0m
+[0;32mI (207) app_init: ELF file SHA256:  bcf736860...[0m
+--- WARNING: Checksum mismatch between flashed and built applications. Checksum of built application is 447fc40726e5087a795959ae3de0f900c2892962ff1de389f6a85532c9139500
+[0;32mI (212) app_init: ESP-IDF:          v5.5.5[0m
+[0;32mI (216) efuse_init: Min chip rev:     v0.0[0m
+[0;32mI (219) efuse_init: Max chip rev:     v0.99 [0m
+[0;32mI (223) efuse_init: Chip rev:         v0.2[0m
+[0;32mI (227) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (234) heap_init: At 3FCA2330 len 000473E0 (284 KiB): RAM[0m
+[0;32mI (239) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM[0m
+[0;32mI (244) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM[0m
+[0;32mI (249) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM[0m
+[0;32mI (255) spi_flash: detected chip: gd[0m
+[0;32mI (258) spi_flash: flash io: dio[0m
+[0;33mW (260) spi_flash: Detected size(8192k) larger than the size in the binary image header(2048k). Using the size in the binary image header.[0m
+[0;32mI (273) sleep_gpio: Configure to isolate all GPIO pins in sleep state[0m
+[0;32mI (279) sleep_gpio: Enable automatic switching of GPIO sleep configuration[0m
+[0;32mI (286) main_task: Started on CPU0[0m
+[0;32mI (289) main_task: Calling app_main()[0m
+[0;32mI (292) mission: ESP starting with Integrated Swarm SLAM[0m
+[0;32mI (317) swarm: Swarm node initialized with Drone ID: 0[0m
+[0;32mI (317) swarm_graph: Swarm graph initialized (max 64 poses/scans in RAM)[0m
+[0;32mI (318) swarm_comm: Swarm comm initialized[0m
+[0;32mI (321) slam: SLAM subsystem initialized[0m
+[0;32mI (325) MEM: [app_main_after_init] Free SRAM: 329948 bytes (Min Lifetime Free: 329948 bytes)[0m
+[0;32mI (334) mav: UART1 ready: TX=GPIO5 RX=GPIO4 @ 921600 baud[0m
+[0;32mI (339) tof: I2C master bus created[0m
+[0;32mI (341) tof: TCA9548A registered[0m
+[0;32mI (345) nav: Navigator started (0.4 m/s cruise, ±6° yaw tol)[0m
+[0;32mI (345) mission: All tasks spawned[0m
+[0;32mI (350) mission: Waiting for telemetry...[0m
+[0;32mI (353) main_task: Returned from app_main()[0m
+[0;32mI (1746) tof: [0] OK — 0° @ 15Hz 8x8[0m
+[0;32mI (3148) tof: [1] OK — 315° @ 15Hz 8x8[0m
+[0;32mI (4551) tof: [2] OK — 270° @ 15Hz 8x8[0m
+[0;32mI (5954) tof: [3] OK — 225° @ 15Hz 8x8[0m
+[0;32mI (7357) tof: [4] OK — 180° @ 15Hz 8x8[0m
+[0;32mI (8760) tof: [5] OK — 135° @ 15Hz 8x8[0m
+[0;32mI (10164) tof: [6] OK — 90° @ 15Hz 8x8[0m
+[0;32mI (11569) tof: [7] OK — 45° @ 15Hz 8x8[0m
+[0;32mI (11570) tof: 8 / 8 sensors ready[0m
+

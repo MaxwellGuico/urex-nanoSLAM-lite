@@ -1,0 +1,328 @@
+[0;33m--- esp-idf-monitor 1.9.0 on /dev/ttyACM0 115200[0m
+[0;33m--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H[0m
+Executing action: monitor
+Running idf_monitor in directory /home/user/urex/firmware/nus_flight_app
+Executing "/home/user/.espressif/tools/python/v6.0.2/venv/bin/python /home/user/.espressif/v6.0.2/esp-idf/tools/idf_monitor.py -p /dev/ttyACM0 -b 115200 --toolchain-prefix xtensa-esp32s3-elf- --target esp32s3 --revision 0 /home/user/urex/firmware/nus_flight_app/build/esp-everything.elf /home/user/urex/firmware/nus_flight_app/build/bootloader/bootloader.elf -m '/home/user/.espressif/tools/python/v6.0.2/venv/bin/python' '/home/user/.espressif/v6.0.2/esp-idf/tools/idf.py' '-p' '/dev/ttyACM0'"...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0xb (SPI_FAST_FLASH_BOOT)
+Saved PC:0x40380406
+[0m--- 0x40380406: [0;33mesp_cpu_wait_for_intr[0m[0m at [0;32m/home/user/.espressif/v6.0.2/esp-idf/components/esp_hw_support/cpu.c[0m[0m:[1;31m64[0m
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x14f0
+load:0x403c8700,len:0xda0
+[0m--- 0x403c8700: [0;33m_stext[0m[0m at [0;32m??[0m[0m:[1;31m?[0m
+load:0x403cb700,len:0x2f54
+entry 0x403c8908
+[0m--- 0x403c8908: [0;33mcall_start_cpu0[0m[0m at [0;32m/home/user/.espressif/v6.0.2/esp-idf/components/bootloader/subproject/main/bootloader_start.c[0m[0m:[1;31m27[0m
+[0;32mI (24) boot: ESP-IDF v6.0.2 2nd stage bootloader[0m
+[0;32mI (24) boot: compile time Sep  6 2026 22:47:32[0m
+[0;32mI (25) boot: Multicore bootloader[0m
+[0;32mI (25) boot: chip revision: v0.2[0m
+[0;32mI (27) boot: efuse block revision: v1.3[0m
+[0;32mI (31) boot.esp32s3: Boot SPI Speed : 80MHz[0m
+[0;32mI (35) boot.esp32s3: SPI Mode       : DIO[0m
+[0;32mI (39) boot.esp32s3: SPI Flash Size : 8MB[0m
+[0;32mI (42) boot: Enabling RNG early entropy source...[0m
+[0;32mI (47) boot: Partition Table:[0m
+[0;32mI (50) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (56) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (62) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (69) boot:  2 factory          factory app      00 00 00010000 00177000[0m
+[0;32mI (75) boot: End of partition table[0m
+[0;32mI (79) esp_image: segment 0: paddr=00010020 vaddr=3c0c0020 size=38484h (230532) map[0m
+[0;32mI (128) esp_image: segment 1: paddr=000484ac vaddr=3fca0e00 size=07b6ch ( 31596) load[0m
+[0;32mI (135) esp_image: segment 2: paddr=00050020 vaddr=42000020 size=ba7f4h (763892) map[0m
+[0;32mI (275) esp_image: segment 3: paddr=0010a81c vaddr=3fca896c size=0004ch (    76) load[0m
+[0;32mI (276) esp_image: segment 4: paddr=0010a870 vaddr=40378000 size=18d60h (101728) load[0m
+[0;32mI (302) esp_image: segment 5: paddr=001235d8 vaddr=50000000 size=00024h (    36) load[0m
+[0;32mI (314) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (314) boot: Disabling RNG early entropy source...[0m
+[0;32mI (324) octal_psram: vendor id    : 0x0d (AP)[0m
+[0;32mI (324) octal_psram: dev id       : 0x02 (generation 3)[0m
+[0;32mI (324) octal_psram: density      : 0x03 (64 Mbit)[0m
+[0;32mI (326) octal_psram: good-die     : 0x01 (Pass)[0m
+[0;32mI (330) octal_psram: Latency      : 0x01 (Fixed)[0m
+[0;32mI (335) octal_psram: VCC          : 0x01 (3V)[0m
+[0;32mI (339) octal_psram: SRF          : 0x01 (Fast Refresh)[0m
+[0;32mI (344) octal_psram: BurstType    : 0x01 (Hybrid Wrap)[0m
+[0;32mI (349) octal_psram: BurstLen     : 0x01 (32 Byte)[0m
+[0;32mI (353) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)[0m
+[0;32mI (358) octal_psram: DriveStrength: 0x00 (1/1)[0m
+[0;32mI (363) MSPI Timing: Enter psram timing tuning[0m
+[0;32mI (367) esp_psram: Found 8MB PSRAM device[0m
+[0;32mI (370) esp_psram: Speed: 80MHz[0m
+[0;32mI (373) cpu_start: Multicore app[0m
+[0;32mI (662) esp_psram: SPI SRAM memory test OK[0m
+[0;32mI (670) cpu_start: GPIO 44 and 43 are used as console UART I/O pins[0m
+[0;32mI (671) cpu_start: Pro cpu start user code[0m
+[0;32mI (671) cpu_start: cpu freq: 240000000 Hz[0m
+[0;32mI (672) app_init: Application information:[0m
+[0;32mI (676) app_init: Project name:     esp-everything[0m
+[0;32mI (680) app_init: App version:      99cde05-dirty[0m
+[0;32mI (685) app_init: Compile time:     Sep  6 2026 23:10:13[0m
+[0;32mI (690) app_init: ELF file SHA256:  072d73cb5...[0m
+[0;32mI (694) app_init: ESP-IDF:          v6.0.2[0m
+[0;32mI (698) efuse_init: Min chip rev:     v0.0[0m
+[0;32mI (702) efuse_init: Max chip rev:     v0.99 [0m
+[0;32mI (706) efuse_init: Chip rev:         v0.2[0m
+[0;32mI (710) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (716) heap_init: At 3FCB0100 len 00039610 (229 KiB): RAM[0m
+[0;32mI (721) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM[0m
+[0;32mI (726) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM[0m
+[0;32mI (732) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator[0m
+[0;32mI (739) spi_flash: detected chip: gd[0m
+[0;32mI (741) spi_flash: flash io: dio[0m
+[0;32mI (745) sleep_gpio: Configure to isolate all GPIO pins in sleep state[0m
+[0;32mI (751) sleep_gpio: Enable automatic switching of GPIO sleep configuration[0m
+[0;32mI (758) main_task: Started on CPU0[0m
+[0;32mI (761) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+[0;32mI (769) main_task: Calling app_main()[0m
+[0;32mI (772) mission: ESP starting[0m
+[0;32mI (789) pp: pp rom version: e7ae62f[0m
+[0;32mI (790) net80211: net80211 rom version: e7ae62f[0m
+[0;32mI (791) wifi:wifi driver task: 3fcbfd88, prio:23, stack:6656, core=0[0m
+[0;32mI (799) wifi:wifi firmware version: 00ad238[0m
+[0;32mI (799) wifi:wifi certification version: v7.0[0m
+[0;32mI (800) wifi:config NVS flash: enabled[0m
+[0;32mI (803) wifi:config nano formatting: disabled[0m
+[0;32mI (808) wifi:Init data frame dynamic rx buffer num: 32[0m
+[0;32mI (812) wifi:Init static rx mgmt buffer num: 5[0m
+[0;32mI (817) wifi:Init management short buffer num: 32[0m
+[0;32mI (821) wifi:Init dynamic tx buffer num: 32[0m
+[0;32mI (825) wifi:Init static tx FG buffer num: 2[0m
+[0;32mI (829) wifi:Init static rx buffer size: 1600[0m
+[0;32mI (833) wifi:Init static rx buffer num: 10[0m
+[0;32mI (837) wifi:Init dynamic rx buffer num: 32[0m
+[0;32mI (841) wifi_init: rx ba win: 6[0m
+[0;32mI (843) wifi_init: accept mbox: 6[0m
+[0;32mI (847) wifi_init: tcpip mbox: 32[0m
+[0;32mI (850) wifi_init: udp mbox: 6[0m
+[0;32mI (852) wifi_init: tcp mbox: 6[0m
+[0;32mI (855) wifi_init: tcp tx win: 5760[0m
+[0;32mI (858) wifi_init: tcp rx win: 5760[0m
+[0;32mI (862) wifi_init: tcp mss: 1440[0m
+[0;32mI (864) wifi_init: WiFi IRAM OP enabled[0m
+[0;32mI (868) wifi_init: WiFi RX IRAM OP enabled[0m
+[0;33mW (872) wifi:Password length matches WPA2 standards, authmode threshold changes from OPEN to WPA2[0m
+[0;32mI (881) phy_init: phy_version 712,87e8c20e,Apr 13 2026,18:51:10[0m
+[0;32mI (916) wifi:mode : sta (b8:f8:62:f8:d4:d8)[0m
+[0;32mI (917) wifi:enable tsf[0m
+[0;32mI (919) wifi: Connecting to '<redacted-ssid>'...[0m
+[0;32mI (921) mav: UART1 ready: TX=GPIO5 RX=GPIO4 @ 921600 baud[0m
+[0;32mI (921) mav: Requested PX4 position + attitude at 20 Hz[0m
+[0;32mI (927) tof: I2C master bus created[0m
+[0;32mI (929) tof: TCA9548A registered[0m
+[0;33mW (932) tof: [0] TCA select failed: 264[0m
+[0;32mI (936) wifi: Telemetry → 192.0.2.1:5005 | Commands ← port 5006[0m
+[0;33mW (943) mission: NANOLITE BENCH MODE: navigation and mission tasks are disabled[0m
+[0;32mI (943) s3 ll_cam: DMA Channel=0[0m
+[0;32mI (944) nanolite: read-only PX4 pose bridge ready: 20Hz max_age=250ms key=25cm/15deg[0m
+[0;32mI (949) mission: All tasks spawned[0m
+[0;32mI (952) cam_hal: cam init ok[0m
+[0;32mI (963) main_task: Returned from app_main()[0m
+[0;32mI (965) sccb-ng: pin_sda 40 pin_scl 39[0m
+[0;32mI (972) sccb-ng: sccb_i2c_port=1[0m
+[0;32mI (976) mav: PX4 stream request ACK result=0[0m
+[0;32mI (980) mav: PX4 stream request ACK result=0[0m
+[0;32mI (988) camera: Camera PID=0x3660 VER=0x00 MIDL=0x00 MIDH=0x00[0m
+[0;32mI (989) camera: Detected OV3660 camera[0m
+[0;32mI (992) camera: Detected camera at address=0x3c[0m
+[0;32mI (994) nanolite: graph/map reset: anchor=(-0.01,-0.41,10.9deg) poses=64 graph=2428B map=424B scans=2048B[0m
+[0;32mI (1303) cam_hal: PSRAM DMA mode disabled[0m
+[0;32mI (1303) s3 ll_cam: node_size: 3840, nodes_per_line: 1, lines_per_node: 12[0m
+[0;32mI (1304) s3 ll_cam: dma_half_buffer_min:  3840, dma_half_buffer: 15360, lines_per_half_buffer: 48, dma_buffer_size: 30720[0m
+[0;32mI (1313) cam_hal: buffer_size: 30720, half_buffer_size: 15360, node_buffer_size: 3840, node_cnt: 8, total_cnt: 5[0m
+[0;32mI (1323) cam_hal: Allocating 76800 Byte frame buffer in PSRAM[0m
+[0;32mI (1329) cam_hal: cam config ok[0m
+[0;32mI (1344) ov3660: Calculated VCO: 160000000 Hz, PLLCLK: 80000000 Hz, SYSCLK: 20000000 Hz, PCLK: 10000000 Hz[0m
+[0;32mI (2081) apriltag_detect: 1 Apriltags Found![0m
+[0;32mI (2404) tof: [1] OK — 0° @ 15Hz 8x8[0m
+[0;32mI (2490) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (2885) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (3259) apriltag_detect: 0 Apriltags Found![0m
+[0;33mW (3330) wifi: Disconnected — reconnecting...[0m
+[0;32mI (3610) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (3820) tof: [2] OK — 315° @ 15Hz 8x8[0m
+[0;32mI (4138) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (4452) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (4830) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (5200) apriltag_detect: 1 Apriltags Found![0m
+[0;32mI (5234) tof: [3] OK — 270° @ 15Hz 8x8[0m
+[0;32mI (5491) apriltag_detect: 0 Apriltags Found![0m
+[0;33mW (5743) wifi: Disconnected — reconnecting...[0m
+[0;32mI (5746) nanolite: map: rays=0 observed=0 candidate=0 occupied=0 dropped=0 keyscans=0 range=2000mm[0m
+[0;32mI (5838) apriltag_detect: 1 Apriltags Found![0m
+[0;32mI (5927) mav: RX/5s: position=100 attitude=101 heartbeat=5 age=49/0ms[0m
+[0;32mI (6219) apriltag_detect: 1 Apriltags Found![0m
+[0;32mI (6570) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (6658) tof: [4] OK — 225° @ 15Hz 8x8[0m
+[0;32mI (6983) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (7379) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (7659) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (8057) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (8071) tof: [5] OK — 180° @ 15Hz 8x8[0m
+[0;33mW (8156) wifi: Disconnected — reconnecting...[0m
+[0;32mI (8547) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (8882) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (9252) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (9492) tof: [6] OK — 135° @ 15Hz 8x8[0m
+[0;32mI (9663) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (10093) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (10449) apriltag_detect: 0 Apriltags Found![0m
+[0;33mW (10570) wifi: Disconnected — reconnecting...[0m
+[0;32mI (10744) nanolite: NANOMAP v=1 seq=1 anchor=-0.01,-0.41 robot=20,19 size=40 res_cm=50 rays=0 cells=00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000[0m
+[0;32mI (10812) nanolite: map: rays=0 observed=0 candidate=0 occupied=0 dropped=0 keyscans=0 range=2000mm[0m
+[0;32mI (10833) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (10909) tof: [7] OK — 90° @ 15Hz 8x8[0m
+[0;32mI (10909) tof: 7 / 8 sensors ready[0m
+[0;33mW (10910) tof: Retrying failed sensors in 500 ms...[0m
+[0;32mI (10927) mav: RX/5s: position=101 attitude=100 heartbeat=5 age=0/1ms[0m
+[0;32mI (11156) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (11505) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (11846) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (12222) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (12561) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (12825) tof: [0] OK — 45° @ 15Hz 8x8[0m
+[0;32mI (12827) tof: 8 / 8 sensors ready[0m
+[0;32mI (12959) apriltag_detect: 0 Apriltags Found![0m
+[0;33mW (12983) wifi: Disconnected — reconnecting...[0m
+[0;32mI (13312) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (13672) apriltag_detect: 1 Apriltags Found![0m
+[0;32mI (14092) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (14446) apriltag_detect: 1 Apriltags Found![0m
+[0;32mI (14953) apriltag_detect: 1 Apriltags Found![0m
+[0;32mI (15327) apriltag_detect: 0 Apriltags Found![0m
+[0;33mW (15397) wifi: Disconnected — reconnecting...[0m
+[0;32mI (15844) nanolite: map: rays=172 observed=8 candidate=0 occupied=8 dropped=0 keyscans=0 range=2000mm[0m
+[0;32mI (15856) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (15927) mav: RX/5s: position=100 attitude=100 heartbeat=5 age=0/1ms[0m
+[0;32mI (16438) apriltag_detect: 1 Apriltags Found![0m
+[0;32mI (16808) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (17202) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (17527) apriltag_detect: 0 Apriltags Found![0m
+[0;33mW (17811) wifi: Disconnected — reconnecting...[0m
+[0;32mI (17823) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (18106) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (18578) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (19070) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (19381) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (19792) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (20121) apriltag_detect: 0 Apriltags Found![0m
+[0;33mW (20225) wifi: Disconnected — reconnecting...[0m
+[0;32mI (20448) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (20744) nanolite: NANOMAP v=1 seq=2 anchor=-0.01,-0.41 robot=20,19 size=40 res_cm=50 rays=454 cells=00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0030000000000000000c0030000000000000000f0030000000000000000c00300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000[0m
+[0;32mI (20818) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (20844) nanolite: map: rays=460 observed=9 candidate=0 occupied=9 dropped=0 keyscans=0 range=2000mm[0m
+[0;32mI (20926) mav: RX/5s: position=100 attitude=101 heartbeat=5 age=1/0ms[0m
+[0;32mI (21348) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (21666) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (22066) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (22468) apriltag_detect: 0 Apriltags Found![0m
+[0;33mW (22640) wifi: Disconnected — reconnecting...[0m
+[0;32mI (22859) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (23232) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (23570) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (23949) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (24263) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (24640) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (24974) apriltag_detect: 0 Apriltags Found![0m
+[0;33mW (25053) wifi: Disconnected — reconnecting...[0m
+[0;32mI (25284) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (25787) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (25844) nanolite: map: rays=748 observed=9 candidate=0 occupied=9 dropped=0 keyscans=0 range=2000mm[0m
+[0;32mI (25927) mav: RX/5s: position=100 attitude=100 heartbeat=5 age=1/0ms[0m
+[0;32mI (26177) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (26558) apriltag_detect: 1 Apriltags Found![0m
+[0;32mI (26870) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (27263) apriltag_detect: 0 Apriltags Found![0m
+[0;33mW (27468) wifi: Disconnected — reconnecting...[0m
+[0;32mI (27579) apriltag_detect: 1 Apriltags Found![0m
+[0;32mI (28001) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (28372) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (28850) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (29148) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (29450) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (29836) apriltag_detect: 0 Apriltags Found![0m
+[0;33mW (29882) wifi: Disconnected — reconnecting...[0m
+[0;32mI (30169) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (30525) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (30744) nanolite: NANOMAP v=1 seq=3 anchor=-0.01,-0.41 robot=20,19 size=40 res_cm=50 rays=1031 cells=00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0030000000000000000c0030000000000000000f0030000000000000000c00300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000[0m
+[0;32mI (30844) nanolite: map: rays=1037 observed=9 candidate=0 occupied=9 dropped=0 keyscans=0 range=2000mm[0m
+[0;32mI (30922) apriltag_detect: 1 Apriltags Found![0m
+[0;32mI (30927) mav: RX/5s: position=101 attitude=100 heartbeat=5 age=0/0ms[0m
+[0;32mI (31321) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (31680) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (32097) apriltag_detect: 0 Apriltags Found![0m
+[0;33mW (32295) wifi: Disconnected — reconnecting...[0m
+[0;32mI (32576) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (32892) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (33243) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (33609) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (33998) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (34425) apriltag_detect: 0 Apriltags Found![0m
+[0;33mW (34709) wifi: Disconnected — reconnecting...[0m
+[0;32mI (34901) apriltag_detect: 1 Apriltags Found![0m
+[0;32mI (35262) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (35635) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (35844) nanolite: map: rays=1324 observed=9 candidate=0 occupied=9 dropped=0 keyscans=0 range=2000mm[0m
+[0;32mI (35927) mav: RX/5s: position=100 attitude=100 heartbeat=5 age=0/1ms[0m
+[0;32mI (36012) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (36356) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (36720) apriltag_detect: 0 Apriltags Found![0m
+[0;33mW (37123) wifi: Disconnected — reconnecting...[0m
+[0;32mI (37192) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (37556) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (38109) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (38671) apriltag_detect: 1 Apriltags Found![0m
+[0;32mI (39134) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (39498) apriltag_detect: 1 Apriltags Found![0m
+[0;33mW (39536) wifi: Disconnected — reconnecting...[0m
+[0;32mI (39848) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (40237) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (40547) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (40744) nanolite: NANOMAP v=1 seq=4 anchor=-0.01,-0.41 robot=20,19 size=40 res_cm=50 rays=1607 cells=00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0030000000000000000c0030000000000000000f0030000000000000000c00300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000[0m
+[0;32mI (40844) nanolite: map: rays=1613 observed=9 candidate=0 occupied=9 dropped=0 keyscans=0 range=2000mm[0m
+[0;32mI (40916) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (40927) mav: RX/5s: position=100 attitude=101 heartbeat=5 age=0/0ms[0m
+[0;32mI (41233) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (41555) apriltag_detect: 0 Apriltags Found![0m
+[0;33mW (41950) wifi: Disconnected — reconnecting...[0m
+[0;32mI (41999) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (42455) apriltag_detect: 2 Apriltags Found![0m
+[0;32mI (42861) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (43303) apriltag_detect: 1 Apriltags Found![0m
+[0;32mI (43554) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (44018) apriltag_detect: 1 Apriltags Found![0m
+[0;32mI (44362) apriltag_detect: 0 Apriltags Found![0m
+[0;33mW (44364) wifi: Disconnected — reconnecting...[0m
+[0;32mI (44663) apriltag_detect: 1 Apriltags Found![0m
+[0;32mI (45114) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (45625) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (45844) nanolite: map: rays=1901 observed=9 candidate=0 occupied=9 dropped=0 keyscans=0 range=2000mm[0m
+[0;32mI (45927) mav: RX/5s: position=100 attitude=100 heartbeat=5 age=1/0ms[0m
+[0;32mI (45947) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (46280) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (46677) apriltag_detect: 0 Apriltags Found![0m
+[0;33mW (46777) wifi: Disconnected — reconnecting...[0m
+[0;32mI (47062) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (47399) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (47714) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (48093) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (48589) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (49001) apriltag_detect: 0 Apriltags Found![0m
+[0;33mW (49191) wifi: Disconnected — reconnecting...[0m
+[0;32mI (49375) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (49735) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (50117) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (50436) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (50744) nanolite: NANOMAP v=1 seq=5 anchor=-0.01,-0.41 robot=19,19 size=40 res_cm=50 rays=2184 cells=00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0030000000000000000c0030000000000000000f0030000000000000000c00300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000[0m
+[0;32mI (50844) nanolite: map: rays=2190 observed=9 candidate=0 occupied=9 dropped=0 keyscans=0 range=2000mm[0m
+[0;32mI (50849) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (50927) mav: RX/5s: position=101 attitude=100 heartbeat=5 age=0/1ms[0m
+[0;32mI (51264) apriltag_detect: 0 Apriltags Found![0m
+[0;33mW (51606) wifi: Disconnected — reconnecting...[0m
+[0;32mI (51631) apriltag_detect: 0 Apriltags Found![0m
+[0;32mI (52014) apriltag_detect: 0 Apriltags Found![0m
+[0m

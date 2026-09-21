@@ -1,0 +1,16 @@
+build/
+.cache/
+.vscode/
+sdkconfig.old
+
+# Python tooling caches
+__pycache__/
+*.py[cod]
+
+# Local editor and operating-system files
+*.swp
+*.swo
+.DS_Store
+
+# ESP-IDF monitor/editor locks
+*.lock
