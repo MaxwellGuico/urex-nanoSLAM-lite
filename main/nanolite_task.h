@@ -30,6 +30,9 @@ typedef struct {
     uint16_t map_occupied_cells;
     uint32_t map_ray_count;
     uint32_t map_dropped_rays;
+    uint32_t last_observe_us;
+    uint32_t maximum_observe_us;
+    uint32_t unaligned_tof_returns;
 } nanolite_task_status_t;
 
 /* Create internal synchronization. Call once before spawning tasks. */
@@ -43,3 +46,6 @@ nanolite_task_status_t nanolite_task_get_status(void);
 
 /* Copy the packed 40x40 map for future telemetry/visualization. */
 bool nanolite_task_copy_map(nanolite_map_t *destination);
+
+/* Copy the corrected pose graph and its odometry/loop constraints. */
+bool nanolite_task_copy_graph(nanolite_graph_t *destination);

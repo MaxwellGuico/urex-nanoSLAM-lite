@@ -70,7 +70,23 @@ To run the portable NanoSLAM-Lite tests without hardware:
 cmake -S components/nanolite -B /tmp/nanolite-build
 cmake --build /tmp/nanolite-build
 ctest --test-dir /tmp/nanolite-build --output-on-failure
+python3 -m unittest -v laptop/test_nanolite_run_view.py
 ```
+
+Bench firmware emits matching `NANOMAP` and `NANOGRAPH` snapshots. Render the
+latest complete pair from a recorded monitor log as a PNG:
+
+```bash
+./laptop/nanolite_run_view.py run-logs/with-external-tof-power/<run>.log
+```
+
+The figure overlays the corrected key-pose trajectory on the occupancy map and
+shows the raw odometry reconstruction, optimized graph, scan poses, heading
+samples, and accepted loop-closure edges in a second panel. The output defaults
+to `<run>-nanolite.png` beside the input log. Matplotlib is required on the
+laptop; it is not part of the embedded firmware. Onboard projection aligns
+each muxed sensor return with an interpolated PX4 pose at that return's own
+timestamp instead of assigning the complete ring to the newest pose.
 
 ## Latest bench logs
 

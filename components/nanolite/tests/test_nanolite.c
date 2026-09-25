@@ -306,6 +306,40 @@ static void test_high_level_package_ingests_data(void)
     assert(nanolite_slam_storage_bytes() == sizeof(nanolite_slam_t));
 }
 
+static void test_timestamp_aligned_return_pose(void)
+{
+    nanolite_slam_t slam;
+    float sensor_yaws[NANOLITE_SENSOR_COUNT] = {0};
+    nanolite_slam_config_t config = nanolite_default_slam_config();
+    config.graph.key_translation_m = 1.0f;
+    config.horizontal_fov_rad = 0.0001f;
+    nanolite_pose_t anchor = pose(0.0f, 0.0f, 0.0f, 100U);
+    assert(nanolite_slam_init(&slam, &config, &anchor, sensor_yaws));
+
+    nanolite_tof_return_t observation = {
+        .distance_mm = 1000U,
+        .column = 3U,
+        .sensor_id = 0U,
+        .timestamp_us = 200U,
+        .valid = true,
+    };
+    const nanolite_pose_t current = pose(0.40f, 0.0f, 0.0f, 300U);
+    const nanolite_pose_t capture = pose(-0.40f, 0.0f, 0.0f, 200U);
+    assert(nanolite_slam_observe_timed(&slam, &current, &observation,
+                                       &capture, 1U) ==
+           NANOLITE_POSE_SKIPPED);
+
+    /* The endpoint is at x=0.60 m from the anchor when projected from the
+     * capture pose. Using the current pose incorrectly would place it at
+     * x=1.40 m, one grid cell farther away. */
+    assert(nanolite_map_get_cell(&slam.map, 21U, 20U) ==
+           NANOLITE_MAP_HIT_CANDIDATE);
+    assert(nanolite_map_get_cell(&slam.map, 22U, 20U) ==
+           NANOLITE_MAP_UNKNOWN);
+    assert(slam.scan_builder.scan.point_count == 1U);
+    assert(fabsf(slam.scan_builder.scan.points[0].x_m - 0.60f) < 0.01f);
+}
+
 static void test_end_to_end_loop_pipeline(void)
 {
     nanolite_slam_t slam;
@@ -362,6 +396,7 @@ int main(void)
     test_icp_recovers_pose_correction();
     test_pose_graph_optimizer_reduces_loop_error();
     test_high_level_package_ingests_data();
+    test_timestamp_aligned_return_pose();
     test_end_to_end_loop_pipeline();
     printf("nanolite tests passed; graph_bytes=%zu map_bytes=%zu "
            "slam_bytes=%zu poses=%u loops=%u\n",

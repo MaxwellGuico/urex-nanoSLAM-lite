@@ -212,4 +212,15 @@ menu "Drone Configuration"
         range 2 60
         default 10
 
+    config NANOLITE_GRAPH_SERIAL_DUMP
+        bool "Emit NanoSLAM-Lite pose-graph snapshots"
+        depends on NANOLITE_MAP_SERIAL_DUMP
+        default y
+        help
+          Emit versioned NANOGRAPH, NANONODE, and NANOEDGE records alongside
+          each packed map snapshot. The records contain the corrected key
+          poses, odometry constraints, loop-closure constraints, and current
+          corrected pose needed to reconstruct and plot a complete run. This
+          is bench-only diagnostic output and is excluded from flight builds.
+
 endmenu

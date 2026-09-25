@@ -301,6 +301,17 @@ nanolite_pose_result_t nanolite_slam_observe(
     const nanolite_tof_return_t *returns,
     size_t return_count)
 {
+    return nanolite_slam_observe_timed(slam, odometry_pose, returns, NULL,
+                                       return_count);
+}
+
+nanolite_pose_result_t nanolite_slam_observe_timed(
+    nanolite_slam_t *slam,
+    const nanolite_pose_t *odometry_pose,
+    const nanolite_tof_return_t *returns,
+    const nanolite_pose_t *return_odometry_poses,
+    size_t return_count)
+{
     if (slam == NULL || !slam->initialized || !valid_pose(odometry_pose) ||
         (return_count > 0U && returns == NULL)) {
         return NANOLITE_POSE_REJECTED;
@@ -318,11 +329,16 @@ nanolite_pose_result_t nanolite_slam_observe(
     }
 
     nanolite_tof_return_t fresh[NANOLITE_SENSOR_COUNT];
+    nanolite_pose_t fresh_poses[NANOLITE_SENSOR_COUNT];
     size_t fresh_count = 0U;
     for (size_t index = 0U; index < return_count; ++index) {
         const nanolite_tof_return_t *observation = &returns[index];
+        const nanolite_pose_t *observation_odometry_pose =
+            return_odometry_poses == NULL ? odometry_pose
+                                          : &return_odometry_poses[index];
         if (observation->sensor_id >= NANOLITE_SENSOR_COUNT ||
             observation->timestamp_us == 0U ||
+            !valid_pose(observation_odometry_pose) ||
             observation->timestamp_us ==
                 slam->last_return_timestamp_us[observation->sensor_id]) {
             continue;
@@ -335,8 +351,10 @@ nanolite_pose_result_t nanolite_slam_observe(
             continue;
         }
         fresh[fresh_count++] = *observation;
+        fresh_poses[fresh_count - 1U] = transform_pose(
+            &slam->map_from_odometry, observation_odometry_pose);
         (void)nanolite_map_integrate_tof(
-            &slam->map, &mapped_pose, observation,
+            &slam->map, &fresh_poses[fresh_count - 1U], observation,
             slam->sensor_yaw_rad[observation->sensor_id],
             slam->config.horizontal_fov_rad,
             slam->config.column_zero_clockwise);
@@ -344,11 +362,13 @@ nanolite_pose_result_t nanolite_slam_observe(
     if (fresh_count > 0U && slam->scan_builder_active) {
         const uint8_t reference_index = slam->scan_builder.scan.pose_index;
         if (reference_index < slam->graph.pose_count) {
-            (void)nanolite_scan_builder_add_returns(
-                &slam->scan_builder, &slam->graph.poses[reference_index],
-                &mapped_pose, fresh, fresh_count, slam->sensor_yaw_rad,
-                slam->config.horizontal_fov_rad,
-                slam->config.column_zero_clockwise, &slam->config.scan);
+            for (size_t index = 0U; index < fresh_count; ++index) {
+                (void)nanolite_scan_builder_add_returns(
+                    &slam->scan_builder, &slam->graph.poses[reference_index],
+                    &fresh_poses[index], &fresh[index], 1U,
+                    slam->sensor_yaw_rad, slam->config.horizontal_fov_rad,
+                    slam->config.column_zero_clockwise, &slam->config.scan);
+            }
         }
     }
     return pose_result;

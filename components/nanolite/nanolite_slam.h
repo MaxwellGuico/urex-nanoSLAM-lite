@@ -81,6 +81,17 @@ nanolite_pose_result_t nanolite_slam_observe(
     const nanolite_tof_return_t *returns,
     size_t return_count);
 
+/* Timestamp-aligned variant. return_odometry_poses contains one raw odometry
+ * pose for each return and may be NULL to use odometry_pose for all returns.
+ * The task integration uses this entry point because muxed ToF channels are
+ * captured at different times. */
+nanolite_pose_result_t nanolite_slam_observe_timed(
+    nanolite_slam_t *slam,
+    const nanolite_pose_t *odometry_pose,
+    const nanolite_tof_return_t *returns,
+    const nanolite_pose_t *return_odometry_poses,
+    size_t return_count);
+
 /* Apply the current map-from-odometry correction to a live raw pose. */
 bool nanolite_slam_correct_odometry_pose(const nanolite_slam_t *slam,
                                          const nanolite_pose_t *odometry_pose,

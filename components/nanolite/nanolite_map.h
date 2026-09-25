@@ -47,13 +47,6 @@ bool nanolite_map_integrate_tof(nanolite_map_t *map,
                                 float horizontal_fov_rad,
                                 bool column_zero_clockwise);
 
-/* Integrate an endpoint already expressed in the pose's local frame. This is
- * used to regenerate the grid after pose-graph correction. */
-bool nanolite_map_integrate_scan_point(nanolite_map_t *map,
-                                       const nanolite_pose_t *pose,
-                                       float point_x_m,
-                                       float point_y_m);
-
 /* Integrate an endpoint expressed in the pose's local frame. This is used to
  * regenerate the map from retained scans after graph correction. */
 bool nanolite_map_integrate_scan_point(nanolite_map_t *map,

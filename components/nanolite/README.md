@@ -14,6 +14,9 @@ the assembled vehicle.
 PX4 optical-flow/IMU pose + reduced ToF ring
                     |
                     v
+        per-return timestamp alignment
+                    |
+                    v
        key poses + live occupancy map
                     |
                     v
@@ -202,13 +205,26 @@ points, and is capped at 160 points. Loop matching is not expected in a stationa
 candidate must be separated by at least six key poses and pass the distance, heading, overlap, RMSE,
 improvement, and maximum-correction gates.
 
-### 7. Render and inspect the map
+### 7. Render and inspect the map and pose graph
 
-Return to the repository root and render the latest complete `NANOMAP` snapshot:
+Return to the flight-application repository and render the latest complete,
+sequence-matched `NANOMAP` and `NANOGRAPH` snapshots:
 
 ```bash
-cd ../..
-./tools/nanolite-map-view.py /tmp/nanolite-small-area.log
+./laptop/nanolite_run_view.py /tmp/nanolite-small-area.log
+```
+
+The generated PNG has two panels. The map panel overlays the corrected
+trajectory and current pose on the occupancy grid. The graph panel shows the
+raw path reconstructed from immutable odometry edges, corrected graph nodes,
+scan poses, sampled headings, optimizer-changed nodes, and accepted loop edges.
+Because the graph is emitted as begin/node/edge/end records, the viewer rejects
+a truncated serial snapshot rather than silently drawing a partial graph.
+
+For a terminal-only map, use:
+
+```bash
+./laptop/nanolite_map_view.py /tmp/nanolite-small-area.log
 ```
 
 The ASCII legend is:
@@ -225,15 +241,17 @@ The ASCII legend is:
 The current map is 40 x 40 cells at 0.5 m/cell, covering a fixed 20 x 20 m area. It is deliberately
 coarse, so a wall may appear thick, stepped, or discontinuous rather than as a clean line.
 
-Extract a compact health summary from the same log:
+Extract a compact health and SLAM summary from the same log:
 
 ```bash
-rg "NANOLITE BENCH MODE|read-only PX4 pose bridge|graph/map reset|sensors ready|RX/5s|NANOTOF|nanolite: pose|nanolite: map:|loop accepted|loop rejected|pose graph full|panic|watchdog" "$RUN_LOG"
+rg "NANOLITE BENCH MODE|read-only PX4 pose bridge|graph/map reset|sensors ready|RX/5s|NANOTOF|NANOMAP|NANOGRAPH_BEGIN|NANOGRAPH_END|nanolite: pose|nanolite: map:|loop accepted|loop rejected|pose graph full|panic|watchdog" "$RUN_LOG"
 ```
 
 For each accepted loop, check that overlap is adequate, RMSE decreases, the correction is physically
-plausible, and graph cost decreases. A logged `loop accepted` is evidence that the software gates
-passed; it is not by itself proof that the match is geometrically correct.
+plausible, graph cost decreases, and `slam_us` does not cause unacceptable task latency. The map
+summary's `step_us` and `max_step_us` fields provide ordinary and worst-case onboard timing. A
+logged `loop accepted` is evidence that the software gates passed; it is not by itself proof that
+the match is geometrically correct.
 
 ### 8. Decide whether the run passed
 
@@ -305,7 +323,8 @@ closes the preceding scan, checks one conservative revisit candidate, accepts on
 match, corrects the graph, updates the odometry-to-map transform, and rebuilds the map from retained
 scan points. Call `nanolite_slam_finalize_active_scan()` to close the last scan in a replay. Use
 `nanolite_slam_correct_odometry_pose()` when a consumer needs the latest live pose in the corrected
-map frame.
+map frame. Hardware integration calls `nanolite_slam_observe_timed()` with a pose interpolated to
+each sensor frame timestamp; the simpler API remains useful for already synchronized replay data.
 
 ## Important limitations
 

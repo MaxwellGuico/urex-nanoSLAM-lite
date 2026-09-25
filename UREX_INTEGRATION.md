@@ -15,6 +15,9 @@ ring to the fixed-capacity NanoSLAM-Lite pose graph and occupancy map. It:
 
 - samples `LOCAL_POSITION_NED` and `ATTITUDE` at 20 Hz;
 - rejects position or attitude older than 250 ms;
+- retains a bounded 16-sample odometry history and interpolates planar pose and
+  wrapped yaw to each muxed ToF frame timestamp before map or scan projection;
+  observations outside that history are rejected and counted as unaligned;
 - stores a pose after 0.25 m translation or 15 degrees yaw;
 - selects one return per sensor using the valid minimum from zero-based rows 3
   and 4, limited to 50-2000 mm;
@@ -103,10 +106,20 @@ ToF endpoints use the scan projection described by NanoSLAM
 one-minimum-per-sensor row-3/row-4 policy. No-target or rejected returns leave
 space unknown rather than clearing it.
 
-Bench builds emit a packed `NANOMAP` snapshot every ten seconds. Capture the
-monitor output and render its latest snapshot with
-`tools/nanolite-map-view.py`. The dump is disabled automatically when bench
-mode is disabled, keeping it out of the flight-time logging path.
+Bench builds emit a packed `NANOMAP` record followed by a coherent
+`NANOGRAPH_BEGIN`/`NANONODE`/`NANOEDGE`/`NANOGRAPH_END` snapshot every ten
+seconds. Map and graph records share a sequence number. The graph snapshot
+contains corrected nodes, immutable odometry constraints, accepted loop
+constraints, pose flags, timestamps, and the latest corrected live pose.
+`laptop/nanolite_run_view.py` renders the latest complete pair as a map and
+pose-graph PNG; the older `laptop/nanolite_map_view.py` remains available for
+ASCII map-only inspection. Snapshot output and its static copy buffers are
+compiled only for bench builds, keeping them out of the flight-time logging
+path. Five-second map summaries report the latest and maximum SLAM observation
+time in microseconds, and loop acceptance/rejection records report the complete
+scan-finalization, ICP, optimization, and map-rebuild duration as `slam_us`.
+The same summaries expose the cumulative `unaligned` count so timestamp/history
+problems are visible during a run.
 
 ## Props-off acceptance test
 
@@ -129,7 +142,9 @@ documented in [`experiments/README.md`](experiments/README.md).
    summary reports growing `scans` and `active_pts`. Treat every `loop
    accepted` record as a proposal to inspect against the recorded ground truth;
    its pair count, overlap, RMSE, correction, and graph cost are logged.
-10. Keep bench mode enabled; navigation and mission must not appear in the task
+10. Render the run with `laptop/nanolite_run_view.py` and inspect the raw and
+    corrected paths plus every magenta loop edge before accepting a result.
+11. Keep bench mode enabled; navigation and mission must not appear in the task
    startup sequence.
 
 Do not let NanoSLAM-Lite influence flight navigation yet. The end-to-end

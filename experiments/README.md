@@ -124,17 +124,27 @@ resetting the board.
 
 ## Check and show the logs
 
-From the repository root, render the latest complete map:
+From the repository root, render the latest complete map and pose graph:
 
 ```bash
 cd nus_flight_app
-./laptop/nanolite_map_view.py /tmp/nanolite-static-1m.log
+./laptop/nanolite_run_view.py /tmp/nanolite-small-loop.log
+```
+
+This creates `/tmp/nanolite-small-loop-nanolite.png`. The left panel contains
+the occupancy grid and corrected trajectory. The right panel compares the raw
+odometry reconstruction with the corrected graph and draws accepted
+loop-closure edges as dotted magenta links. Use the map-only ASCII fallback
+when needed:
+
+```bash
+./laptop/nanolite_map_view.py /tmp/nanolite-small-loop.log
 ```
 
 Extract the most useful health and mapping lines:
 
 ```bash
-rg "NANOLITE BENCH MODE|read-only PX4 pose bridge|graph/map reset|8 / 8 sensors ready|RX/5s|NANOTOF|nanolite: pose|nanolite: map:|cam_hal|Apriltags" /tmp/nanolite-static-1m.log
+rg "NANOLITE BENCH MODE|read-only PX4 pose bridge|graph/map reset|8 / 8 sensors ready|RX/5s|NANOTOF|NANOMAP|NANOGRAPH_BEGIN|NANOGRAPH_END|nanolite: pose|nanolite: map:|loop accepted|loop rejected|cam_hal|Apriltags" /tmp/nanolite-small-loop.log
 ```
 
 In bench mode, one versioned `NANOTOF` record is emitted each second. The
@@ -147,7 +157,8 @@ body-yaw mapping used by the firmware.
 When sharing a result, provide:
 
 1. The complete monitor log, not only the ASCII map.
-2. The output of `nanolite-map-view.py`.
+2. The PNG output of `nanolite_run_view.py` and, when useful, the ASCII output
+   of `nanolite_map_view.py`.
 3. Wall distances measured from the sensor faces.
 4. Initial drone heading and which numbered sensor faced the reference wall.
 5. Whether the drone was stationary, translated, or rotated, including measured amounts.
@@ -163,6 +174,12 @@ When sharing a result, provide:
 - `rays` increases after all ToF sensors are ready.
 - `dropped=0` for an experiment contained by the 20 m map.
 - Repeated returns promote `candidate` cells to `occupied` cells.
+- `step_us` remains comfortably below the 50 ms observation period during
+  ordinary updates; record every loop record's `slam_us` and `max_step_us` for
+  scheduling analysis rather than assuming loop closure meets the budget.
+- `unaligned` may increase briefly while pose history fills after reset, then
+  remains stable; continuing growth means ToF and PX4 timestamps cannot be
+  aligned and those returns are being conservatively discarded.
 - Stable walls produce stable `NANOTOF` distances and winning columns; valid
   mapping returns normally appear in both the `valid` and `fresh` masks.
 - A sensor that stops producing frames is invalidated within three seconds and
