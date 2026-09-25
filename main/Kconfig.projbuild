@@ -61,6 +61,16 @@ menu "Drone Configuration"
         help
           Port to send apriltag messages to
 
+    config APRILTAG_CAMERA_ENABLED
+        bool "Enable AprilTag camera task"
+        default n
+        help
+          Start the camera and AprilTag detector on Core 1. Leave this disabled
+          while validating the Core 0 ToF and NanoSLAM-Lite pipeline. The
+          camera state APIs remain initialized and report no detections, so
+          telemetry callers can continue safely. In bench mode, disabling this
+          option leaves Core 1 available for future camera work.
+
     config DRONE_ID
         int "Drone ID (0-30)"
         range 0 30
@@ -126,11 +136,11 @@ menu "Drone Configuration"
         bool "NanoSLAM-Lite props-off bench mode"
         default y
         help
-          Keep telemetry, ToF, Wi-Fi, camera detection, and NanoSLAM-Lite
-          active, but do not spawn the navigation or mission tasks. This
-          prevents this development image from arming or flying the vehicle.
-          Disable only after props-off validation and a flight-readiness
-          review.
+          Keep telemetry, ToF, Wi-Fi, and NanoSLAM-Lite active, but do not
+          spawn the navigation or mission tasks. Camera detection is controlled
+          separately by APRILTAG_CAMERA_ENABLED. This prevents this development
+          image from arming or flying the vehicle. Disable only after props-off
+          validation and a flight-readiness review.
 
     config NANOLITE_POSE_MAX_AGE_MS
         int "Maximum NanoSLAM-Lite PX4 pose age (ms)"

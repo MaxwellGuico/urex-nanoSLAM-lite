@@ -34,12 +34,35 @@ cd nus_flight_app
 
 idf.py set-target esp32s3
 idf.py menuconfig
-idf.py build
+./scripts/idf_logged.sh build
+```
+
+Use `scripts/idf_logged.sh` instead of calling `idf.py` directly whenever terminal output must be
+kept. Each invocation prints and saves the exact command, timestamp, Git revision, power label,
+output, and exit status. A sibling `.evidence` directory preserves the full commit ID, tracked
+binary patch, untracked files, `sdkconfig`, defaults, partition/dependency inputs, and hashes of the
+resulting ELF and binaries. This makes dirty development images reproducible without silently
+committing unrelated work. Routine logs and evidence go into the ignored `run-logs/` directory so
+they do not accidentally bloat Git history. Evidence can contain Wi-Fi credentials from
+`sdkconfig`; keep it private or scrub secrets before sharing. Copy only review-worthy hardware logs
+into the matching `experiments/with-external-tof-power/` or
+`experiments/without-external-tof-power/` directory.
+
+For a flashed hardware run, explicitly record the ToF power arrangement:
+
+```bash
+./scripts/idf_logged.sh --power external -p /dev/ttyACM0 flash monitor
+# Or, when the ToF ring has no external supply:
+./scripts/idf_logged.sh --power no-external -p /dev/ttyACM0 flash monitor
 ```
 
 Under **Drone Configuration**, replace `YOUR_WIFI_SSID`, `YOUR_WIFI_PASSWORD`, and the documentation
 address `192.0.2.1` with local values if Wi-Fi telemetry is required. Serial-only bench logging does
 not require Wi-Fi.
+
+The review configuration keeps **Enable AprilTag camera task** disabled. MAVLink, ToF, Wi-Fi, and
+NanoSLAM-Lite run on Core 0; no project task is started on Core 1 in bench mode. The camera code is
+retained and both its detector and driver are assigned to Core 1 when the option is enabled later.
 
 To run the portable NanoSLAM-Lite tests without hardware:
 

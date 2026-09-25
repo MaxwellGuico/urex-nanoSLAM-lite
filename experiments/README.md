@@ -40,6 +40,7 @@ Current baseline configuration:
 | Setting | Value |
 | --- | ---: |
 | Pose sampling | 20 Hz |
+| AprilTag camera task | Disabled; Core 1 reserved |
 | Maximum PX4 pose age | 250 ms |
 | Translation key-pose threshold | 25 cm |
 | Yaw key-pose threshold | 15 degrees |
@@ -95,20 +96,28 @@ run used ESP-IDF 6.0.2.
 ```bash
 cd nus_flight_app
 idf.py --version
-idf.py build
+./scripts/idf_logged.sh build
 ```
 
-Connect the PX4 telemetry link and ESP32-S3, then choose an explicit log name for the experiment:
+The wrapper saves every build terminal under `run-logs/builds/` and creates a sibling `.evidence`
+directory containing the exact Git/configuration snapshot and build hashes. This evidence may
+contain Wi-Fi credentials copied from `sdkconfig`; keep it private or scrub secrets before sharing.
+Connect the PX4 telemetry link and ESP32-S3, then give the wrapper the actual ToF power condition for
+the hardware run:
 
 ```bash
-PORT=/dev/ttyACM0
-LOG=/tmp/nanolite-static-1m.log
-idf.py -p "$PORT" flash
-idf.py -p "$PORT" monitor 2>&1 | tee "$LOG"
+./scripts/idf_logged.sh --power external -p /dev/ttyACM0 flash monitor
+# Or, without an external ToF supply:
+./scripts/idf_logged.sh --power no-external -p /dev/ttyACM0 flash monitor
 ```
 
 Press `Ctrl+]` to stop the monitor. Do not disconnect or move the drone until at least one `NANOMAP`
 record has appeared after the experiment. Map records are emitted every 10 seconds in bench mode.
+
+Monitor logs are automatically placed in `run-logs/with-external-tof-power/` or
+`run-logs/without-external-tof-power/`. These routine logs are ignored by Git. After checking a run,
+copy the useful log into the matching `experiments/` directory with a descriptive, dated filename
+so it becomes part of the preserved review evidence.
 
 If the firmware is already flashed, omit the `flash` command and capture a new monitor log after
 resetting the board.
@@ -149,6 +158,7 @@ When sharing a result, provide:
 
 - `NANOLITE BENCH MODE` appears; navigation and mission tasks are absent.
 - `8 / 8 sensors ready` appears.
+- `All ToF channels have fresh frames` appears before OFFBOARD/arming.
 - `RX/5s` is approximately 100 position and 100 attitude messages, with both ages below 250 ms.
 - `rays` increases after all ToF sensors are ready.
 - `dropped=0` for an experiment contained by the 20 m map.
@@ -160,9 +170,12 @@ When sharing a result, provide:
   that recovery, timestamps from healthy sensors must continue advancing; a
   failed channel must not force every valid channel out of `fresh`.
 - The static observed-cell count eventually stabilizes.
-- AprilTag/camera processing continues without repeated camera overflow errors.
+- When the camera option is enabled, AprilTag processing continues without repeated camera errors.
+- When the camera option is disabled, startup reports that camera hardware will not be initialized.
 - No sensor goes three seconds without a fresh frame, and there is no panic,
   watchdog reset, allocation failure, or repeated sensor reinitialization.
+- While armed, any loss of full-ring freshness emits `ARMED TOF COVERAGE LOST`
+  and commands a hold until `Full ToF coverage restored` appears.
 
 `R` and `A` in the ASCII viewer replace the underlying cell symbols. A displayed robot or anchor cell
 may therefore also be occupied. Because the anchor lies at a cell boundary, very small negative pose

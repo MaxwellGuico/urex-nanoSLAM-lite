@@ -122,13 +122,15 @@ static void inject_peers_into_histogram(float hist[VFH_BINS],
 #define COLLISION_DANGER_M    0.40f   /* trigger threshold (m)                    */
 #define COLLISION_CLEAR_M     0.50f   /* resume normal nav once all points above  */
 #define COLLISION_SPEED_MS    0.35f    /* escape velocity magnitude (m/s)          */
+#define TOF_FORWARD_HALF_WIDTH_DEG 45.0f
+#define TOF_STEER_HALF_WIDTH_DEG   22.5f
 
 static bool s_collision_active = false;
 
 static bool collision_avoid(float goal_z)
 {
     if (!mavlink_position_valid()) return false;
-    if (!tof_is_healthy()) return false;   /* stale sensors — let nav_tick hold */
+    if (!tof_all_sensors_fresh(TOF_NAV_MAX_FRAME_AGE_MS)) return false;
 
     tof_scan_collapsed_t scan = tof_get_collapsed_scan();
     drone_state_t drone = mavlink_get_state();
@@ -263,9 +265,28 @@ static void nav_tick(const vfh_config_t *vfh_cfg)
         return;
     }
 
-    /* ---- Guard: hold position if ToF sensors are stale ---- */
-    if (!tof_is_healthy()) {
-        ESP_LOGW(TAG, "ToF sensors stale — holding position");
+    /* ---- Guard: require complete ring and forward-sector coverage ---- */
+    const tof_health_t tof_health =
+        tof_get_health(TOF_NAV_MAX_FRAME_AGE_MS);
+    if (tof_health.online_mask != TOF_ALL_SENSOR_MASK ||
+        tof_health.fresh_mask != TOF_ALL_SENSOR_MASK) {
+        ESP_LOGW(TAG,
+                 "Incomplete ToF ring — holding: online=0x%02x fresh=0x%02x",
+                 (unsigned)tof_health.online_mask,
+                 (unsigned)tof_health.fresh_mask);
+        mavlink_set_position_ned(drone.x, drone.y, nav.goal_z, drone.heading);
+        return;
+    }
+
+    uint8_t required_mask = 0U;
+    uint8_t missing_mask = 0U;
+    if (!tof_sector_is_fresh(-TOF_FORWARD_HALF_WIDTH_DEG,
+                             TOF_FORWARD_HALF_WIDTH_DEG,
+                             TOF_NAV_MAX_FRAME_AGE_MS,
+                             &required_mask, &missing_mask)) {
+        ESP_LOGW(TAG,
+                 "Forward ToF sector incomplete — holding: required=0x%02x missing=0x%02x",
+                 (unsigned)required_mask, (unsigned)missing_mask);
         mavlink_set_position_ned(drone.x, drone.y, nav.goal_z, drone.heading);
         return;
     }
@@ -317,6 +338,23 @@ static void nav_tick(const vfh_config_t *vfh_cfg)
         float steering = vfh_compute(&scan, vfh_cfg, goal_body_angle,
                                      nav.prev_steering_rad, blocked);
         new_steering = steering;
+
+        /* A selected valley is not actionable unless the sensors covering
+         * that direction are fresh.  This remains an explicit guard even
+         * though flight currently requires the stronger full-ring condition. */
+        const float steering_deg = steering * 180.0f / (float)M_PI;
+        if (!tof_sector_is_fresh(steering_deg - TOF_STEER_HALF_WIDTH_DEG,
+                                 steering_deg + TOF_STEER_HALF_WIDTH_DEG,
+                                 TOF_NAV_MAX_FRAME_AGE_MS,
+                                 &required_mask, &missing_mask)) {
+            ESP_LOGW(TAG,
+                     "Selected ToF sector incomplete — holding: steer=%.1f required=0x%02x missing=0x%02x",
+                     steering_deg, (unsigned)required_mask,
+                     (unsigned)missing_mask);
+            mavlink_set_position_ned(drone.x, drone.y, nav.goal_z,
+                                     drone.heading);
+            return;
+        }
 
         /* |steering| is the heading error: how much we must rotate before flying.
          *
@@ -472,11 +510,49 @@ void nav_task(void *arg)
     TickType_t   last_wake        = xTaskGetTickCount();
     TickType_t   wifi_discon_tick = 0;   /* 0 = link up; else tick of first drop */
     bool         wifi_kill_sent   = false;
+    bool         tof_hold_active  = false;
 
     ESP_LOGI(TAG, "Navigator started (%.1f m/s cruise, ±%.0f° yaw tol)",
              NAV_CRUISE_SPEED_MS, NAV_YAW_TOL_RAD * 180.0f / (float)M_PI);
 
     while (1) {
+        /* ---- Armed ToF coverage monitor ----
+         * This runs even with no active navigation goal. A missing channel in
+         * OFFBOARD causes a latched position hold; navigation resumes only
+         * after all eight channels are online and fresh again. */
+        const drone_state_t flight_state = mavlink_get_state();
+        bool tof_coverage_lost = false;
+        if (flight_state.armed) {
+            const tof_health_t health =
+                tof_get_health(TOF_NAV_MAX_FRAME_AGE_MS);
+            const bool full_coverage =
+                health.online_mask == TOF_ALL_SENSOR_MASK &&
+                health.fresh_mask == TOF_ALL_SENSOR_MASK;
+
+            if (!full_coverage) {
+                tof_coverage_lost = true;
+                if (!tof_hold_active) {
+                    ESP_LOGE(TAG,
+                             "ARMED TOF COVERAGE LOST — holding: online=0x%02x fresh=0x%02x missing=0x%02x",
+                             (unsigned)health.online_mask,
+                             (unsigned)health.fresh_mask,
+                             (unsigned)(TOF_ALL_SENSOR_MASK &
+                                        ~health.fresh_mask));
+                    if (flight_state.custom_main_mode ==
+                        PX4_MAIN_MODE_OFFBOARD) {
+                        mavlink_set_hold();
+                    }
+                    tof_hold_active = true;
+                }
+            } else if (tof_hold_active) {
+                ESP_LOGI(TAG,
+                         "Full ToF coverage restored — navigation may resume");
+                tof_hold_active = false;
+            }
+        } else {
+            tof_hold_active = false;
+        }
+
         /* ---- WiFi link-loss killswitch ----
          * Immediately cancel navigation and hold position when WiFi drops.
          * If the link stays down for >3 s while armed, disarm (motor cut). */
@@ -502,6 +578,14 @@ void nav_task(void *arg)
 
         /* Skip navigation while WiFi is down — hold was already commanded */
         if (wifi_discon_tick != 0) {
+            vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(50));
+            continue;
+        }
+
+        /* The Wi-Fi failsafe above must continue counting even during a ToF
+         * fault. Once it has run, suppress all navigation until coverage is
+         * complete; the previously latched hold remains the active setpoint. */
+        if (tof_coverage_lost) {
             vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(50));
             continue;
         }

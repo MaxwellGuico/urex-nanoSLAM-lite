@@ -383,21 +383,63 @@ float tof_sensor_angle_deg(uint8_t sensor_id)
     return sensor_id < TOF_SENSOR_COUNT ? SENSOR_ANGLES[sensor_id] : NAN;
 }
 
-bool tof_is_healthy(void)
+tof_health_t tof_get_health(uint32_t max_frame_age_ms)
 {
+    tof_health_t health;
+    memset(&health, 0, sizeof(health));
+    for (int i = 0; i < TOF_SENSOR_COUNT; ++i) {
+        health.age_ms[i] = UINT32_MAX;
+    }
+
+    const uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
     xSemaphoreTake(s_scan_mutex, portMAX_DELAY);
-    // Find the most recently updated frame
-    uint32_t latest_ms = 0;
     for (int i = 0; i < TOF_SENSOR_COUNT; i++) {
-        if (s_scan.frame[i].valid && s_scan.frame[i].timestamp_ms > latest_ms) {
-            latest_ms = s_scan.frame[i].timestamp_ms;
+        const uint8_t bit = (uint8_t)(1U << i);
+        if (s_scan.sensor_ok[i]) {
+            health.online_mask |= bit;
+        }
+        if (s_scan.sensor_ok[i] && s_scan.frame[i].valid) {
+            const uint32_t age_ms = now_ms - s_scan.frame[i].timestamp_ms;
+            health.age_ms[i] = age_ms;
+            if (age_ms <= max_frame_age_ms) {
+                health.fresh_mask |= bit;
+            }
         }
     }
     xSemaphoreGive(s_scan_mutex);
 
-    if (latest_ms == 0) return false;
-    uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
-    return (now_ms - latest_ms) < 500;
+    return health;
+}
+
+bool tof_all_sensors_fresh(uint32_t max_frame_age_ms)
+{
+    const tof_health_t health = tof_get_health(max_frame_age_ms);
+    return health.online_mask == TOF_ALL_SENSOR_MASK &&
+           health.fresh_mask == TOF_ALL_SENSOR_MASK;
+}
+
+bool tof_sector_is_fresh(float angle_min_deg, float angle_max_deg,
+                         uint32_t max_frame_age_ms,
+                         uint8_t *required_mask, uint8_t *missing_mask)
+{
+    uint8_t required = 0U;
+    for (uint8_t sensor = 0U; sensor < TOF_SENSOR_COUNT; ++sensor) {
+        if (sensor_overlaps_sector(SENSOR_ANGLES[sensor], angle_min_deg,
+                                   angle_max_deg)) {
+            required |= (uint8_t)(1U << sensor);
+        }
+    }
+
+    const tof_health_t health = tof_get_health(max_frame_age_ms);
+    const uint8_t missing = (uint8_t)(required & ~health.fresh_mask);
+    if (required_mask != NULL) {
+        *required_mask = required;
+    }
+    if (missing_mask != NULL) {
+        *missing_mask = missing;
+    }
+
+    return required != 0U && missing == 0U;
 }
 
 int tof_sensors_ok_count(void)

@@ -89,6 +89,11 @@ ESP32-S3 with IDF 6.0, so its private requirements include `esp_hal_clock` for
 IDF 6.0 and newer. This preserves the pinned camera code rather than silently
 upgrading it during the SLAM integration.
 
+The review configuration leaves `CONFIG_APRILTAG_CAMERA_ENABLED` disabled. MAVLink, ToF, Wi-Fi,
+and NanoSLAM-Lite remain pinned to Core 0; bench mode does not start navigation or mission tasks,
+so Core 1 has no project task. The AprilTag task and the camera driver's internal worker are both
+assigned to Core 1 when camera support is enabled later.
+
 The graph sequencing follows NanoSLAM: odometry edges connect consecutive
 poses, and graph correction begins only after a scan match provides a valid
 loop-closure edge (`papers/2309.12008.pdf`, pp. 7 and 9).

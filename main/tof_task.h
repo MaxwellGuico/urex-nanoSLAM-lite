@@ -17,6 +17,8 @@
 #define TOF_RANGING_FREQ_HZ     10
 #define TOF_MAX_VALID_MM        3000    // discard readings above this (sensor max is 4m)
 #define TOF_MIN_VALID_MM        50      // discard readings below this (sensor blind zone)
+#define TOF_NAV_MAX_FRAME_AGE_MS 250U   // maximum frame age accepted by flight safety
+#define TOF_ALL_SENSOR_MASK      ((uint8_t)((1U << TOF_SENSOR_COUNT) - 1U))
 
 // FreeRTOS placement — Core 0, below mavlink but above mission
 #define TOF_TASK_CORE           0
@@ -58,6 +60,16 @@ typedef struct {
     tof_frame_t frame[TOF_SENSOR_COUNT];
     uint8_t     sensor_ok[TOF_SENSOR_COUNT]; // 1 = sensor initialised and ranging
 } tof_scan_t;
+
+// Per-sensor communication health.  A frame is fresh only when the sensor is
+// online, has published at least one complete frame, and that frame is no older
+// than the caller's maximum age.  Target validity is deliberately separate:
+// an empty scene can have a healthy fresh frame with no accepted target.
+typedef struct {
+    uint8_t  online_mask;
+    uint8_t  fresh_mask;
+    uint32_t age_ms[TOF_SENSOR_COUNT]; // UINT32_MAX until the first frame
+} tof_health_t;
 
 // ---------------------------------------------------------------------------
 // Init & task entry
@@ -113,9 +125,18 @@ typedef struct {
 
 tof_scan_collapsed_t tof_get_collapsed_scan(void);
 
-// True if at least one sensor has been successfully initialised and
-// has produced a reading in the last 500ms.
-bool tof_is_healthy(void);
+// Snapshot online/fresh state for every sensor.
+tof_health_t tof_get_health(uint32_t max_frame_age_ms);
+
+// True only when all eight sensors are online and have fresh frames.
+bool tof_all_sensors_fresh(uint32_t max_frame_age_ms);
+
+// True only when every sensor whose field of view overlaps the requested body
+// arc is online and fresh. Angles use the same CW-positive convention as the
+// ranging API and may cross 0 degrees. Optional masks aid diagnostics.
+bool tof_sector_is_fresh(float angle_min_deg, float angle_max_deg,
+                         uint32_t max_frame_age_ms,
+                         uint8_t *required_mask, uint8_t *missing_mask);
 
 // Returns the number of sensors that passed initialisation (0–8).
 // Safe to call from any task after tof_task has completed its init phase.

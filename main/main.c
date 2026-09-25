@@ -42,6 +42,7 @@ static void mission_task(void *arg)
     float target_z   = -(CRUISE_ALT_M);   /* NED: negative = above ground */
     float takeoff_x  = 0.0f;
     float takeoff_y  = 0.0f;
+    float takeoff_heading = 0.0f;
 
     /* ------------------------------------------------------------------ */
     /* Phase 1: Wait for valid telemetry                                   */
@@ -89,6 +90,18 @@ static void mission_task(void *arg)
         ESP_LOGI(TAG, "All %d ToF sensors OK — proceeding to arm", tof_ok);
     }
 
+    /* Initialisation alone is not enough: wait until every channel has
+     * published a complete, recent frame before changing flight mode. */
+    while (!tof_all_sensors_fresh(TOF_NAV_MAX_FRAME_AGE_MS)) {
+        const tof_health_t health = tof_get_health(TOF_NAV_MAX_FRAME_AGE_MS);
+        ESP_LOGW(TAG,
+                 "Waiting for full ToF coverage: online=0x%02x fresh=0x%02x",
+                 (unsigned)health.online_mask,
+                 (unsigned)health.fresh_mask);
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
+    ESP_LOGI(TAG, "All ToF channels have fresh frames — flight gate open");
+
     /* ------------------------------------------------------------------ */
     /* Phase 3a: Switch to OFFBOARD mode                                   */
     /* Retry every 500 ms until PX4 confirms via heartbeat custom_main_mode */
@@ -129,16 +142,43 @@ static void mission_task(void *arg)
         drone_state_t st = mavlink_get_state();
         takeoff_x = st.x;
         takeoff_y = st.y;
-        mavlink_set_position_ned(takeoff_x, takeoff_y, target_z, st.heading);
+        takeoff_heading = st.heading;
+        mavlink_set_position_ned(takeoff_x, takeoff_y, target_z,
+                                 takeoff_heading);
     }
     ESP_LOGI(TAG, "Taking off to %.1f m AGL (NED z=%.2f)...", CRUISE_ALT_M, target_z);
 
-    for (int i = 0; i < TAKEOFF_TIMEOUT_S * 10; i++) {
-        if (fabsf(mavlink_get_state().z - target_z) < ALT_TOLERANCE_M) break;
+    bool altitude_reached = false;
+    for (int healthy_ticks = 0; healthy_ticks < TAKEOFF_TIMEOUT_S * 10; ) {
+        if (!tof_all_sensors_fresh(TOF_NAV_MAX_FRAME_AGE_MS)) {
+            /* nav_task has latched a hold. Pause the takeoff timeout and do
+             * not overwrite that hold until full coverage returns. */
+            vTaskDelay(pdMS_TO_TICKS(100));
+            continue;
+        }
+
+        /* Reassert the mission-owned takeoff target after a recovered ToF
+         * hold; mavlink_task will continue streaming the newest setpoint. */
+        mavlink_set_position_ned(takeoff_x, takeoff_y, target_z,
+                                 takeoff_heading);
+        if (fabsf(mavlink_get_state().z - target_z) < ALT_TOLERANCE_M) {
+            altitude_reached = true;
+            break;
+        }
+        ++healthy_ticks;
         vTaskDelay(pdMS_TO_TICKS(100));
     }
-    ESP_LOGI(TAG, "Altitude reached: NED z=%.2f (target=%.2f)",
-             mavlink_get_state().z, target_z);
+    if (altitude_reached) {
+        ESP_LOGI(TAG, "Altitude reached: NED z=%.2f (target=%.2f)",
+                 mavlink_get_state().z, target_z);
+    } else {
+        ESP_LOGE(TAG,
+                 "Takeoff altitude timeout: NED z=%.2f (target=%.2f) — holding",
+                 mavlink_get_state().z, target_z);
+        mavlink_set_hold();
+        nav_goal_active = false;
+        goto do_land;
+    }
 
     vTaskDelay(pdMS_TO_TICKS(1000));
 
@@ -311,17 +351,26 @@ void app_main(void)
         NULL, NANOLITE_TASK_PRIORITY, NULL, NANOLITE_TASK_CORE
     );
 
-    /* Core 1: camera remains active in both bench and flight builds. */
+#if CONFIG_APRILTAG_CAMERA_ENABLED
+    /* Core 1 is dedicated to the optional camera/AprilTag pipeline. */
     xTaskCreatePinnedToCore(
         at_detect_task, "apriltag", AT_TASK_STACK,
         NULL, AT_TASK_PRIORITY, NULL, AT_TASK_CORE
     );
+#else
+    ESP_LOGW(TAG,
+             "AprilTag camera disabled; camera hardware will not be initialized");
+#endif
 
 #if CONFIG_NANOLITE_BENCH_MODE
     /* Development default: observe the real sensor/estimator workload without
      * starting tasks that can issue navigation or mission flight commands. */
     ESP_LOGW(TAG,
              "NANOLITE BENCH MODE: navigation and mission tasks are disabled");
+#if !CONFIG_APRILTAG_CAMERA_ENABLED
+    ESP_LOGI(TAG,
+             "Core 0 runs MAVLink/ToF/Wi-Fi/NanoSLAM-Lite; Core 1 is reserved");
+#endif
 #else
     /* Core 1: navigator (Pri 3) + mission (Pri 2)
      * nav_task preempts mission_task on Core 1 when it has work. */

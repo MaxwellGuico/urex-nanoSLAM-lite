@@ -15,6 +15,10 @@ CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
 
 # Development images must not spawn navigation or mission flight tasks
 CONFIG_NANOLITE_BENCH_MODE=y
+# Keep camera hardware untouched; reserve Core 1 for enabling it later
+# CONFIG_APRILTAG_CAMERA_ENABLED is not set
+# CONFIG_CAMERA_CORE0 is not set
+CONFIG_CAMERA_CORE1=y
 CONFIG_NANOLITE_MAP_EFFECTIVE_RANGE_MM=2000
 CONFIG_NANOLITE_MAP_TOF_MAX_AGE_MS=250
 CONFIG_NANOLITE_TOF_BENCH_TELEMETRY=y
