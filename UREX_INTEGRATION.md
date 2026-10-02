@@ -31,8 +31,13 @@ ring to the fixed-capacity NanoSLAM-Lite pose graph and occupancy map. It:
   channels, transfers only the distance/target outputs consumed by SLAM, and
   bounds I2C transactions to 100 ms. Both mux-control and downstream sensor
   transactions use the TCA9548A's rated 400 kHz limit. The ring runs at 10 Hz
-  to leave bus-bandwidth margin and rapidly sweeps the short readiness headers before
-  transferring complete frames. A sensor is invalidated after three seconds
+  to leave bus-bandwidth margin. Startup configures all eight channels while
+  ranging is stopped, starts them in one bounded sequence, and immediately
+  sweeps the short readiness headers before transferring complete frames. A
+  channel is not published online until its first full frame arrives. I2C
+  failures are logged before conversion to the ST API status byte, including
+  sensor ID, mux channel, operation, register, full `esp_err_t`, and
+  `esp_err_to_name()`. A sensor is invalidated after three seconds
   without a fresh frame and queued to a lower-priority recovery worker. Mux
   selection and each sensor transfer are atomic, while large recovery writes
   are divided into 256-byte transactions so healthy channels continue being

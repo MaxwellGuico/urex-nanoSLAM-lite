@@ -8,6 +8,7 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
+#include "esp_err.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 
@@ -41,10 +42,16 @@ static QueueHandle_t            s_recovery_queue;
 // stream counter, initialization and frame parsing use per-device buffers and
 // configuration pointers that must not be overwritten by another sensor.
 static VL53L5CX_Configuration   s_dev[TOF_SENSOR_COUNT];
-static uint8_t                  s_sensor_ok[TOF_SENSOR_COUNT]; // 1 = sensor ready
+// Lifecycle is deliberately split: configured/ranging controls whether the
+// acquisition task may poll a channel, while sensor_ok is published only
+// after at least one complete frame has actually arrived.
+static uint8_t                  s_sensor_configured[TOF_SENSOR_COUNT];
+static uint8_t                  s_sensor_ranging[TOF_SENSOR_COUNT];
+static uint8_t                  s_sensor_ok[TOF_SENSOR_COUNT];
 static uint8_t                  s_recovery_pending[TOF_SENSOR_COUNT];
 static uint32_t                 s_last_frame_ms[TOF_SENSOR_COUNT];
 static uint32_t                 s_last_reinit_ms[TOF_SENSOR_COUNT];
+static bool                     s_ring_frame_ready_reported;
 
 #define TOF_MUX_I2C_SPEED_HZ        400000
 #define TOF_BUS_FAIL_THRESHOLD      10
@@ -57,23 +64,26 @@ static uint32_t                 s_last_reinit_ms[TOF_SENSOR_COUNT];
 #error "The ToF ring requires CONFIG_VL53L5CX_MUXED_BUS"
 #endif
 
-static void publish_sensor_state(uint8_t sensor, bool online)
+static void publish_sensor_lifecycle(uint8_t sensor, bool configured,
+                                     bool ranging, uint32_t now_ms)
 {
     xSemaphoreTake(s_scan_mutex, portMAX_DELAY);
-    s_sensor_ok[sensor] = online ? 1U : 0U;
-    s_scan.sensor_ok[sensor] = online ? 1U : 0U;
-    if (!online) {
-        s_scan.frame[sensor].valid = 0U;
-    }
+    s_sensor_configured[sensor] = configured ? 1U : 0U;
+    s_sensor_ranging[sensor] = ranging ? 1U : 0U;
+    s_sensor_ok[sensor] = 0U;
+    s_scan.sensor_ok[sensor] = 0U;
+    s_scan.frame[sensor].valid = 0U;
+    s_last_frame_ms[sensor] = ranging ? now_ms : 0U;
+    s_ring_frame_ready_reported = false;
     xSemaphoreGive(s_scan_mutex);
 }
 
-static bool sensor_is_online(uint8_t sensor)
+static bool sensor_is_pollable(uint8_t sensor)
 {
     xSemaphoreTake(s_scan_mutex, portMAX_DELAY);
-    const bool online = s_sensor_ok[sensor] != 0U;
+    const bool pollable = s_sensor_ranging[sensor] != 0U;
     xSemaphoreGive(s_scan_mutex);
-    return online;
+    return pollable;
 }
 
 // ---------------------------------------------------------------------------
@@ -109,10 +119,10 @@ static float frame_min_range_m(const tof_frame_t *f)
 }
 
 // ---------------------------------------------------------------------------
-// Initialise one sensor via the mux
+// Configure one sensor via the mux without starting continuous ranging.
 // Returns true on success.
 // ---------------------------------------------------------------------------
-static bool init_sensor(uint8_t idx)
+static bool configure_sensor(uint8_t idx)
 {
     VL53L5CX_Configuration *dev = &s_dev[idx];
 
@@ -137,14 +147,25 @@ static bool init_sensor(uint8_t idx)
         return false;
     }
 
-    if (vl53l5cx_start_ranging(dev)) {
-        ESP_LOGE(TAG, "[%d] start ranging failed", idx);
-        return false;
-    }
-
-    ESP_LOGI(TAG, "[%d] OK — %.0f° @ %dHz 8x8",
+    ESP_LOGI(TAG, "[%d] configured — %.0f° @ %dHz 8x8",
              idx, SENSOR_ANGLES[idx], TOF_RANGING_FREQ_HZ);
     return true;
+}
+
+static bool start_sensor_ranging(uint8_t idx)
+{
+    if (vl53l5cx_start_ranging(&s_dev[idx])) {
+        ESP_LOGE(TAG, "[%u] start ranging failed", (unsigned)idx);
+        return false;
+    }
+    ESP_LOGI(TAG, "[%u] ranging started — awaiting first frame",
+             (unsigned)idx);
+    return true;
+}
+
+static bool reinitialize_and_start_sensor(uint8_t idx)
+{
+    return configure_sensor(idx) && start_sensor_ranging(idx);
 }
 
 static bool schedule_sensor_recovery(uint8_t sensor, uint32_t now_ms,
@@ -153,7 +174,7 @@ static bool schedule_sensor_recovery(uint8_t sensor, uint32_t now_ms,
     bool should_queue = false;
 
     xSemaphoreTake(s_scan_mutex, portMAX_DELAY);
-    if (!s_sensor_ok[sensor] && !s_recovery_pending[sensor] &&
+    if (!s_sensor_ranging[sensor] && !s_recovery_pending[sensor] &&
         (force ||
          (uint32_t)(now_ms - s_last_reinit_ms[sensor]) >=
              TOF_SENSOR_REINIT_MS)) {
@@ -187,10 +208,13 @@ static bool mark_sensor_stale(uint8_t sensor, uint32_t now_ms,
 
     xSemaphoreTake(s_scan_mutex, portMAX_DELAY);
     const uint32_t age = now_ms - s_last_frame_ms[sensor];
-    if (s_sensor_ok[sensor] && age >= TOF_SENSOR_STALE_MS) {
+    if (s_sensor_ranging[sensor] && age >= TOF_SENSOR_STALE_MS) {
+        s_sensor_configured[sensor] = 0U;
+        s_sensor_ranging[sensor] = 0U;
         s_sensor_ok[sensor] = 0U;
         s_scan.sensor_ok[sensor] = 0U;
         s_scan.frame[sensor].valid = 0U;
+        s_ring_frame_ready_reported = false;
         stale = true;
     }
     xSemaphoreGive(s_scan_mutex);
@@ -214,23 +238,25 @@ static void tof_recovery_task(void *arg)
         const uint32_t start_ms = (uint32_t)(esp_timer_get_time() / 1000);
         ESP_LOGW(TAG, "[%u] background full recovery started",
                  (unsigned)sensor);
-        const bool recovered = init_sensor(sensor);
+        const bool recovered = reinitialize_and_start_sensor(sensor);
         const uint32_t end_ms = (uint32_t)(esp_timer_get_time() / 1000);
 
         xSemaphoreTake(s_scan_mutex, portMAX_DELAY);
-        s_sensor_ok[sensor] = recovered ? 1U : 0U;
-        s_scan.sensor_ok[sensor] = recovered ? 1U : 0U;
+        s_sensor_configured[sensor] = recovered ? 1U : 0U;
+        s_sensor_ranging[sensor] = recovered ? 1U : 0U;
+        s_sensor_ok[sensor] = 0U;
+        s_scan.sensor_ok[sensor] = 0U;
         s_scan.frame[sensor].valid = 0U;
         s_last_reinit_ms[sensor] = end_ms;
-        if (recovered) {
-            s_last_frame_ms[sensor] = end_ms;
-        }
+        s_last_frame_ms[sensor] = recovered ? end_ms : 0U;
+        s_ring_frame_ready_reported = false;
         s_recovery_pending[sensor] = 0U;
         xSemaphoreGive(s_scan_mutex);
 
         if (recovered) {
             ESP_LOGI(TAG,
-                     "[%u] background recovery complete in %lu ms",
+                     "[%u] background recovery restarted ranging in %lu ms; "
+                     "awaiting first fresh frame",
                      (unsigned)sensor,
                      (unsigned long)(end_ms - start_ms));
         } else {
@@ -300,10 +326,13 @@ void tof_task_init(void)
 {
     memset(&s_scan, 0, sizeof(s_scan));
     memset(s_dev, 0, sizeof(s_dev));
+    memset(s_sensor_configured, 0, sizeof(s_sensor_configured));
+    memset(s_sensor_ranging, 0, sizeof(s_sensor_ranging));
     memset(s_sensor_ok, 0, sizeof(s_sensor_ok));
     memset(s_recovery_pending, 0, sizeof(s_recovery_pending));
     memset(s_last_frame_ms, 0, sizeof(s_last_frame_ms));
     memset(s_last_reinit_ms, 0, sizeof(s_last_reinit_ms));
+    s_ring_frame_ready_reported = false;
 
     // Compute CCW sensor angles from front sensor index
     for (int i = 0; i < TOF_SENSOR_COUNT; i++) {
@@ -543,6 +572,7 @@ void tof_task(void *arg)
     for (int i = 0; i < TOF_SENSOR_COUNT; ++i) {
         s_dev[i].platform.bus_config = bus_cfg;
         s_dev[i].platform.handle = vl_handle;
+        s_dev[i].platform.sensor_id = (uint8_t)i;
 #ifdef CONFIG_VL53L5CX_MUXED_BUS
         s_dev[i].platform.mux_handle = s_tca_handle;
         s_dev[i].platform.bus_mutex = s_bus_mutex;
@@ -550,43 +580,66 @@ void tof_task(void *arg)
 #endif
     }
 
-    // ---- Init all 8 sensors — retry until all are up ----
-    // mission_task blocks arming until tof_sensors_ok_count() == TOF_SENSOR_COUNT,
-    // so we must keep retrying here rather than giving up after one pass.
+    // ---- Configure all 8 sensors without starting continuous ranging ----
+    // Keeping every device idle during this phase prevents early channels
+    // from ranging unpolled while a later channel is retried.
     for (;;) {
-        int ok_count = 0;
+        int configured_count = 0;
         for (int i = 0; i < TOF_SENSOR_COUNT; i++) {
-            if (s_sensor_ok[i]) { ok_count++; continue; }   // already up
+            if (s_sensor_configured[i]) {
+                configured_count++;
+                continue;
+            }
 
-            const bool initialized = init_sensor(i);
-            publish_sensor_state((uint8_t)i, initialized);
-            if (!initialized) {
+            const bool configured = configure_sensor((uint8_t)i);
+            publish_sensor_lifecycle((uint8_t)i, configured, false, 0U);
+            if (!configured) {
                 // Bus may be stuck — reset and give it a moment before next pass
-                i2c_master_bus_reset(s_bus_handle);
+                const esp_err_t err = i2c_master_bus_reset(s_bus_handle);
+                if (err != ESP_OK) {
+                    ESP_LOGE(TAG,
+                             "startup bus reset esp_err=0x%08lx "
+                             "esp_err_name=%s",
+                             (unsigned long)(uint32_t)err,
+                             esp_err_to_name(err));
+                }
                 vTaskDelay(pdMS_TO_TICKS(50));
             }
-            if (initialized) ok_count++;
+            if (configured) {
+                configured_count++;
+            }
         }
 
-        ESP_LOGI(TAG, "%d / %d sensors ready", ok_count, TOF_SENSOR_COUNT);
-        if (ok_count == TOF_SENSOR_COUNT) {
-            ESP_LOGI(TAG, "ToF frame transfer size: %lu bytes @ %d Hz",
-                     (unsigned long)s_dev[0].data_read_size,
-                     TOF_RANGING_FREQ_HZ);
+        ESP_LOGI(TAG, "%d / %d sensors configured (ranging not started)",
+                 configured_count, TOF_SENSOR_COUNT);
+        if (configured_count == TOF_SENSOR_COUNT) {
             break;
         }
 
-        ESP_LOGW(TAG, "Retrying failed sensors in 500 ms...");
+        ESP_LOGW(TAG, "Retrying failed sensor configuration in 500 ms...");
         vTaskDelay(pdMS_TO_TICKS(500));
     }
 
-    // Give every initialized sensor a full stale interval to produce its first
-    // frame before applying the runtime recovery policy.
-    const uint32_t polling_start_ms =
-        (uint32_t)(esp_timer_get_time() / 1000);
+    ESP_LOGI(TAG, "ToF frame transfer size: %lu bytes @ %d Hz",
+             (unsigned long)s_dev[0].data_read_size,
+             TOF_RANGING_FREQ_HZ);
+
+    // ---- Start every configured channel once, in a bounded sequence ----
+    // No channel is reported online yet. A channel becomes online only after
+    // the polling loop receives its first complete frame.
+    uint8_t ranging_mask = 0U;
     for (int i = 0; i < TOF_SENSOR_COUNT; ++i) {
-        s_last_frame_ms[i] = polling_start_ms;
+        const bool ranging = start_sensor_ranging((uint8_t)i);
+        const uint32_t start_ms = (uint32_t)(esp_timer_get_time() / 1000);
+        publish_sensor_lifecycle((uint8_t)i, true, ranging, start_ms);
+        if (ranging) {
+            ranging_mask |= (uint8_t)(1U << i);
+        }
     }
+    ESP_LOGI(TAG,
+             "start sequence complete: configured_mask=0x%02x "
+             "ranging_mask=0x%02x frame_ready_mask=0x00",
+             TOF_ALL_SENSOR_MASK, ranging_mask);
 
     const BaseType_t recovery_task_created = xTaskCreatePinnedToCore(
         tof_recovery_task,
@@ -601,6 +654,16 @@ void tof_task(void *arg)
              "background recovery ready: priority=%d chunk=%dB",
              TOF_RECOVERY_TASK_PRIORITY,
              CONFIG_VL53L5CX_I2C_WRITE_CHUNK_BYTES);
+
+    // A failed start enters the same serialized full-recovery path as a
+    // runtime dropout. Successfully started channels are polled immediately.
+    const uint32_t recovery_queue_ms =
+        (uint32_t)(esp_timer_get_time() / 1000);
+    for (uint8_t sensor = 0U; sensor < TOF_SENSOR_COUNT; ++sensor) {
+        if ((ranging_mask & (uint8_t)(1U << sensor)) == 0U) {
+            schedule_sensor_recovery(sensor, recovery_queue_ms, true);
+        }
+    }
 
     // ---- Round-robin polling loop ----
     // Pattern from mapper.c: select mux, check data ready, extract if ready.
@@ -636,7 +699,7 @@ void tof_task(void *arg)
             // bus once, invalidate all frames, then let the background worker
             // recover channels while the polling task remains responsive.
             for (int i = 0; i < TOF_SENSOR_COUNT; i++) {
-                publish_sensor_state((uint8_t)i, false);
+                publish_sensor_lifecycle((uint8_t)i, false, false, 0U);
             }
 
             // Reset the I2C bus (sends 9 SCL clocks to release a stuck SDA)
@@ -644,7 +707,11 @@ void tof_task(void *arg)
             esp_err_t err = i2c_master_bus_reset(s_bus_handle);
             xSemaphoreGive(s_bus_mutex);
             if (err != ESP_OK) {
-                ESP_LOGE(TAG, "i2c_master_bus_reset failed: %d", err);
+                ESP_LOGE(TAG,
+                         "runtime bus reset esp_err=0x%08lx "
+                         "esp_err_name=%s",
+                         (unsigned long)(uint32_t)err,
+                         esp_err_to_name(err));
             }
             vTaskDelay(pdMS_TO_TICKS(100));
 
@@ -658,8 +725,9 @@ void tof_task(void *arg)
             continue;
         }
 
-        // Periodically re-attempt init on any sensor that dropped out
-        if (!sensor_is_online(sensor)) {
+        // Periodically re-attempt full configuration/start on any sensor that
+        // is not currently range-pollable.
+        if (!sensor_is_pollable(sensor)) {
             schedule_sensor_recovery(sensor, now_ms, false);
             vTaskDelay(pdMS_TO_TICKS(1));
             continue;
@@ -686,11 +754,15 @@ void tof_task(void *arg)
             } else {
                 now_ms = (uint32_t)(esp_timer_get_time() / 1000);
                 consecutive_fails = 0;
+                bool first_frame = false;
+                bool ring_frame_ready = false;
+                uint8_t frame_ready_mask = 0U;
 
                 // Copy the full 64-pixel frame into the shared scan buffer.
                 // distance_mm and target_status are the same array sizes as
                 // TOF_PIXELS_PER_SENSOR (VL53L5CX_RESOLUTION_8X8 * NB_TARGET_PER_ZONE).
                 xSemaphoreTake(s_scan_mutex, portMAX_DELAY);
+                first_frame = s_sensor_ok[sensor] == 0U;
                 s_last_frame_ms[sensor] = now_ms;
                 memcpy(s_scan.frame[sensor].distance_mm,
                        results.distance_mm,
@@ -700,7 +772,32 @@ void tof_task(void *arg)
                        TOF_PIXELS_PER_SENSOR * sizeof(uint8_t));
                 s_scan.frame[sensor].timestamp_ms = now_ms;
                 s_scan.frame[sensor].valid        = 1;
+                s_sensor_ok[sensor] = 1U;
+                s_scan.sensor_ok[sensor] = 1U;
+                for (uint8_t index = 0U; index < TOF_SENSOR_COUNT; ++index) {
+                    if (s_sensor_ok[index]) {
+                        frame_ready_mask |= (uint8_t)(1U << index);
+                    }
+                }
+                if (frame_ready_mask == TOF_ALL_SENSOR_MASK &&
+                    !s_ring_frame_ready_reported) {
+                    s_ring_frame_ready_reported = true;
+                    ring_frame_ready = true;
+                }
                 xSemaphoreGive(s_scan_mutex);
+
+                if (first_frame) {
+                    ESP_LOGI(TAG,
+                             "[%u] first fresh frame received; "
+                             "frame_ready_mask=0x%02x",
+                             (unsigned)sensor, (unsigned)frame_ready_mask);
+                }
+                if (ring_frame_ready) {
+                    ESP_LOGI(TAG,
+                             "%d / %d sensors frame-ready: every channel "
+                             "has supplied a fresh frame",
+                             TOF_SENSOR_COUNT, TOF_SENSOR_COUNT);
+                }
             }
         } else {
             // The bus transaction succeeded; the per-sensor stale deadline

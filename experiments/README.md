@@ -144,7 +144,7 @@ when needed:
 Extract the most useful health and mapping lines:
 
 ```bash
-rg "NANOLITE BENCH MODE|read-only PX4 pose bridge|graph/map reset|8 / 8 sensors ready|RX/5s|NANOTOF|NANOMAP|NANOGRAPH_BEGIN|NANOGRAPH_END|nanolite: pose|nanolite: map:|loop accepted|loop rejected|cam_hal|Apriltags" /tmp/nanolite-small-loop.log
+rg "NANOLITE BENCH MODE|read-only PX4 pose bridge|graph/map reset|sensors configured|start sequence complete|8 / 8 sensors frame-ready|vl53_io|RX/5s|NANOTOF|NANOMAP|NANOGRAPH_BEGIN|NANOGRAPH_END|nanolite: pose|nanolite: map:|loop accepted|loop rejected|cam_hal|Apriltags" /tmp/nanolite-small-loop.log
 ```
 
 In bench mode, one versioned `NANOTOF` record is emitted each second. The
@@ -168,10 +168,10 @@ When sharing a result, provide:
 ### Healthy log checklist
 
 - `NANOLITE BENCH MODE` appears; navigation and mission tasks are absent.
-- `8 / 8 sensors ready` appears.
+- `8 / 8 sensors frame-ready` appears only after all channels deliver frames.
 - `All ToF channels have fresh frames` appears before OFFBOARD/arming.
 - `RX/5s` is approximately 100 position and 100 attitude messages, with both ages below 250 ms.
-- `rays` increases after all ToF sensors are ready.
+- `rays` increases after all ToF sensors are frame-ready.
 - `dropped=0` for an experiment contained by the 20 m map.
 - Repeated returns promote `candidate` cells to `occupied` cells.
 - `step_us` remains comfortably below the 50 ms observation period during
@@ -234,7 +234,7 @@ Status: **passed as a sensor and integration smoke test**.
 
 1. Place four flat boundaries approximately 1.0 m from the corresponding sensor faces.
 2. Mark the drone centre and heading, then reboot without moving it.
-3. Wait for `8 / 8 sensors ready`.
+3. Wait for `8 / 8 sensors frame-ready`.
 4. Record at least 30 seconds and collect at least two post-initialization `NANOMAP` records.
 5. Render the final map.
 

@@ -75,19 +75,20 @@ static void mission_task(void *arg)
     ESP_LOGI(TAG, "CMD_START received — checking ToF sensors...");
 
     /* ------------------------------------------------------------------ */
-    /* Pre-arm safety: require all ToF sensors to be initialised.          */
-    /* If any sensor failed, refuse to arm — flying without full obstacle  */
-    /* coverage is too dangerous.  Log every 2 s so the issue is obvious.  */
+    /* Pre-arm safety: require a complete frame from every ToF sensor.      */
+    /* Configuration/start success alone does not prove obstacle coverage. */
     /* ------------------------------------------------------------------ */
     {
         int tof_ok = tof_sensors_ok_count();
         while (tof_ok < TOF_SENSOR_COUNT) {
-            ESP_LOGE(TAG, "TOF CHECK FAILED: %d / %d sensors OK — refusing to arm",
+            ESP_LOGE(TAG, "TOF CHECK FAILED: %d / %d sensors frame-ready "
+                     "— refusing to arm",
                      tof_ok, TOF_SENSOR_COUNT);
             vTaskDelay(pdMS_TO_TICKS(2000));
             tof_ok = tof_sensors_ok_count();
         }
-        ESP_LOGI(TAG, "All %d ToF sensors OK — proceeding to arm", tof_ok);
+        ESP_LOGI(TAG, "All %d ToF sensors frame-ready — checking freshness",
+                 tof_ok);
     }
 
     /* Initialisation alone is not enough: wait until every channel has

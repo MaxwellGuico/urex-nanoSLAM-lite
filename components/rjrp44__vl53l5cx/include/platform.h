@@ -36,6 +36,8 @@ typedef struct
     i2c_master_dev_handle_t handle;
     i2c_master_bus_config_t bus_config;
     uint16_t address;
+    /* Logical ring index used for transport diagnostics. */
+    uint8_t sensor_id;
     gpio_num_t reset_gpio;
 #ifdef CONFIG_VL53L5CX_MUXED_BUS
     i2c_master_dev_handle_t mux_handle;

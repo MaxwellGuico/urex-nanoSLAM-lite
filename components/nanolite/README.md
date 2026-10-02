@@ -173,15 +173,15 @@ Wait for all of these conditions:
 |---|---|
 | `NANOLITE BENCH MODE` | Navigation and mission flight tasks are disabled. |
 | `read-only PX4 pose bridge ready` | NanoSLAM-Lite is sampling the PX4 pose. |
-| `8 / 8 sensors ready` | Every ToF sensor initialized and started ranging. |
+| `8 / 8 sensors frame-ready` | Every ToF sensor supplied at least one complete frame. |
 | `RX/5s` near 100 position and 100 attitude messages | PX4 is publishing both streams near 20 Hz. |
 | `graph/map reset` | A fresh pose became the map anchor. |
 | `NANOTOF` with non-zero `valid` and `fresh` masks | Reduced ToF returns are usable and timely. |
 | `map: rays=...` increasing | ToF rays are reaching the occupancy map. |
 
 Both ages in `RX/5s` should remain below 250 ms. Do not continue when bench mode is absent, fewer
-than eight sensors are ready, pose data is stale, or the ESP32-S3 reports a panic, watchdog reset,
-or allocation failure.
+than eight sensors are frame-ready, pose data is stale, or the ESP32-S3 reports a panic, watchdog
+reset, or allocation failure.
 
 ### 6. Record a small-area SLAM run
 
@@ -244,7 +244,7 @@ coarse, so a wall may appear thick, stepped, or discontinuous rather than as a c
 Extract a compact health and SLAM summary from the same log:
 
 ```bash
-rg "NANOLITE BENCH MODE|read-only PX4 pose bridge|graph/map reset|sensors ready|RX/5s|NANOTOF|NANOMAP|NANOGRAPH_BEGIN|NANOGRAPH_END|nanolite: pose|nanolite: map:|loop accepted|loop rejected|pose graph full|panic|watchdog" "$RUN_LOG"
+rg "NANOLITE BENCH MODE|read-only PX4 pose bridge|graph/map reset|sensors configured|start sequence complete|sensors frame-ready|vl53_io|RX/5s|NANOTOF|NANOMAP|NANOGRAPH_BEGIN|NANOGRAPH_END|nanolite: pose|nanolite: map:|loop accepted|loop rejected|pose graph full|panic|watchdog" "$RUN_LOG"
 ```
 
 For each accepted loop, check that overlap is adequate, RMSE decreases, the correction is physically
@@ -276,7 +276,7 @@ and approximate vehicle height with every result.
 |---|---|
 | Serial port cannot be opened | Confirm the USB data cable, device name, permissions, and that no other monitor owns the port. |
 | `waiting for fresh PX4 position and attitude` | Check crossed UART TX/RX, common ground, configured pins, baud rate, and PX4 message publication. |
-| Fewer than `8 / 8 sensors ready` | Check sensor power, TCA9548A address/channel wiring, SDA/SCL pins, and I2C connections. |
+| Fewer than `8 / 8 sensors frame-ready` | Check the configured/ranging masks, full `vl53_io` error, sensor power, TCA9548A channel wiring, and SDA/SCL. |
 | `NANOTOF` is present but `valid=0x00` | Put a matte obstacle 0.05-2.0 m from the sensors and check target-status/range filtering. |
 | `valid` is non-zero but `fresh` is zero | Check ToF frame timestamps, sensor recovery messages, task delays, and the 250 ms age gate. |
 | Rays increase but no cell becomes `#` | Keep the wall still; the same endpoint cell needs repeated observations before confirmation. |

@@ -58,7 +58,8 @@ typedef struct {
 // ---------------------------------------------------------------------------
 typedef struct {
     tof_frame_t frame[TOF_SENSOR_COUNT];
-    uint8_t     sensor_ok[TOF_SENSOR_COUNT]; // 1 = sensor initialised and ranging
+    // 1 only after configuration, ranging start, and the first complete frame.
+    uint8_t     sensor_ok[TOF_SENSOR_COUNT];
 } tof_scan_t;
 
 // Per-sensor communication health.  A frame is fresh only when the sensor is
@@ -138,6 +139,6 @@ bool tof_sector_is_fresh(float angle_min_deg, float angle_max_deg,
                          uint32_t max_frame_age_ms,
                          uint8_t *required_mask, uint8_t *missing_mask);
 
-// Returns the number of sensors that passed initialisation (0–8).
-// Safe to call from any task after tof_task has completed its init phase.
+// Returns the number of sensors that have supplied a complete frame (0–8).
+// A successful configure/start command alone is deliberately insufficient.
 int tof_sensors_ok_count(void);

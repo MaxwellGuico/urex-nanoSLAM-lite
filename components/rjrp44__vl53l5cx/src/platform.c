@@ -12,6 +12,35 @@
 
 
 #include "platform.h"
+#include "esp_err.h"
+#include "esp_log.h"
+
+static const char *TAG = "vl53_io";
+
+/* The ST API exposes an eight-bit platform status, whereas ESP-IDF uses the
+ * wider esp_err_t namespace (for example ESP_ERR_INVALID_RESPONSE is 0x108).
+ * Log the full value before returning a generic non-zero status so a NACK can
+ * never be mistaken for a sensor-internal GO2 code after truncation. */
+static uint8_t vl53l5cx_platform_error(VL53L5CX_Platform *p_platform,
+                                      const char *operation,
+                                      uint16_t register_address,
+                                      esp_err_t err)
+{
+    unsigned mux_channel = UINT8_MAX;
+#ifdef CONFIG_VL53L5CX_MUXED_BUS
+    mux_channel = p_platform->mux_channel;
+#endif
+    ESP_LOGE(TAG,
+             "sensor=%u mux_channel=%u operation=%s register=0x%04x "
+             "esp_err=0x%08lx esp_err_name=%s",
+             (unsigned)p_platform->sensor_id,
+             mux_channel,
+             operation,
+             (unsigned)register_address,
+             (unsigned long)(uint32_t)err,
+             esp_err_to_name(err));
+    return UINT8_MAX;
+}
 
 //Use the timeout from the config, the default timeout is -1
 #if CONFIG_VL53L5CX_I2C_TIMEOUT == false
@@ -21,16 +50,21 @@
 #endif
 
 #ifdef CONFIG_VL53L5CX_MUXED_BUS
-static uint8_t vl53l5cx_platform_begin(VL53L5CX_Platform *p_platform)
+static uint8_t vl53l5cx_platform_begin(VL53L5CX_Platform *p_platform,
+                                       const char *operation,
+                                       uint16_t register_address)
 {
     if (p_platform->bus_mutex == NULL ||
         p_platform->mux_handle == NULL ||
         p_platform->mux_channel >= 8U) {
-        return (uint8_t)ESP_FAIL;
+        return vl53l5cx_platform_error(p_platform, operation,
+                                       register_address,
+                                       ESP_ERR_INVALID_STATE);
     }
 
     if (xSemaphoreTake(p_platform->bus_mutex, portMAX_DELAY) != pdTRUE) {
-        return (uint8_t)ESP_FAIL;
+        return vl53l5cx_platform_error(p_platform, operation,
+                                       register_address, ESP_FAIL);
     }
 
     const uint8_t channel_mask =
@@ -42,7 +76,8 @@ static uint8_t vl53l5cx_platform_begin(VL53L5CX_Platform *p_platform)
         VL53L5CX_I2C_TIMEOUT);
     if (err != ESP_OK) {
         xSemaphoreGive(p_platform->bus_mutex);
-        return (uint8_t)err;
+        return vl53l5cx_platform_error(p_platform, operation,
+                                       register_address, err);
     }
 
     return 0U;
@@ -70,13 +105,14 @@ uint8_t VL53L5CX_WrMulti(VL53L5CX_Platform *p_platform, uint16_t RegisterAdress,
             chunk_size = CONFIG_VL53L5CX_I2C_WRITE_CHUNK_BYTES;
         }
 
-        uint8_t status = vl53l5cx_platform_begin(p_platform);
+        const uint16_t chunk_address =
+            (uint16_t)(RegisterAdress + offset);
+        uint8_t status = vl53l5cx_platform_begin(
+            p_platform, "mux_select_for_write", chunk_address);
         if (status != 0U) {
             return status;
         }
 
-        const uint16_t chunk_address =
-            (uint16_t)(RegisterAdress + offset);
         uint8_t i2c_address[] = {
             (uint8_t)(chunk_address >> 8),
             (uint8_t)(chunk_address & 0xFFU)
@@ -99,7 +135,8 @@ uint8_t VL53L5CX_WrMulti(VL53L5CX_Platform *p_platform, uint16_t RegisterAdress,
             VL53L5CX_I2C_TIMEOUT);
         vl53l5cx_platform_end(p_platform);
         if (err != ESP_OK) {
-            return (uint8_t)err;
+            return vl53l5cx_platform_error(p_platform, "write",
+                                           chunk_address, err);
         }
         offset += chunk_size;
     }
@@ -111,8 +148,10 @@ uint8_t VL53L5CX_WrMulti(VL53L5CX_Platform *p_platform, uint16_t RegisterAdress,
     i2c_buffers[0].buffer_size = 2;
     i2c_buffers[1].write_buffer = p_values;
     i2c_buffers[1].buffer_size = size;
-    return i2c_master_multi_buffer_transmit(
+    const esp_err_t err = i2c_master_multi_buffer_transmit(
         p_platform->handle, i2c_buffers, 2, VL53L5CX_I2C_TIMEOUT);
+    return err == ESP_OK ? 0U : vl53l5cx_platform_error(
+        p_platform, "write", RegisterAdress, err);
 #endif
 }
 
@@ -128,7 +167,8 @@ uint8_t VL53L5CX_RdMulti(VL53L5CX_Platform *p_platform, uint16_t RegisterAdress,
     uint8_t i2c_address[] = {RegisterAdress >> 8, RegisterAdress & 0xFF};
 
 #ifdef CONFIG_VL53L5CX_MUXED_BUS
-    uint8_t status = vl53l5cx_platform_begin(p_platform);
+    uint8_t status = vl53l5cx_platform_begin(
+        p_platform, "mux_select_for_read", RegisterAdress);
     if (status != 0U) {
         return status;
     }
@@ -140,11 +180,14 @@ uint8_t VL53L5CX_RdMulti(VL53L5CX_Platform *p_platform, uint16_t RegisterAdress,
         size,
         VL53L5CX_I2C_TIMEOUT);
     vl53l5cx_platform_end(p_platform);
-    return (uint8_t)err;
+    return err == ESP_OK ? 0U : vl53l5cx_platform_error(
+        p_platform, "read", RegisterAdress, err);
 #else
-    return i2c_master_transmit_receive(
+    const esp_err_t err = i2c_master_transmit_receive(
         p_platform->handle, i2c_address, 2, p_values, size,
         VL53L5CX_I2C_TIMEOUT);
+    return err == ESP_OK ? 0U : vl53l5cx_platform_error(
+        p_platform, "read", RegisterAdress, err);
 #endif
 }
 
